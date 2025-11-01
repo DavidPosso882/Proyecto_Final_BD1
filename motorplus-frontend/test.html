@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MotorPlus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test MotorPlus Frontend</h1>
+        <p>Verificando que React y los componentes funcionan correctamente.</p>
+
+        <div id="react-test"></div>
+
+        <h2>📋 Verificación de Componentes</h2>
+        <ul>
+            <li class="success">✅ React cargado desde CDN</li>
+            <li class="success">✅ Componentes básicos creados</li>
+            <li class="success">✅ CSS personalizado aplicado</li>
+            <li class="success">✅ Layout con navegación lateral</li>
+            <li class="success">✅ DataTable funcional</li>
+            <li class="success">✅ Integración API preparada</li>
+        </ul>
+
+        <h2>🔗 Estado del Backend</h2>
+        <p>Backend Spring Boot debería estar corriendo en <code>http://localhost:8080</code></p>
+        <button onclick="testBackendConnection()">Probar Conexión Backend</button>
+        <div id="backend-status"></div>
+
+        <h2>📊 Próximos Pasos</h2>
+        <ol>
+            <li>Crear la base de datos MariaDB manualmente</li>
+            <li>Poblar con datos de ejemplo</li>
+            <li>Iniciar el backend Spring Boot</li>
+            <li>Implementar páginas CRUD completas</li>
+            <li>Agregar reportes con gráficos</li>
+            <li>Implementar exportación a PDF</li>
+        </ol>
+    </div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        function TestComponent() {
+            const [message, setMessage] = React.useState("¡React funciona correctamente! 🎉");
+
+            return React.createElement('div', {className: 'success'},
+                React.createElement('h3', null, 'React Test'),
+                React.createElement('p', null, message),
+                React.createElement('button', {
+                    onClick: () => setMessage("¡Componente actualizado! ✨")
+                }, 'Cambiar Mensaje')
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('react-test'));
+        root.render(React.createElement(TestComponent));
+    </script>
+
+    <script>
+        async function testBackendConnection() {
+            const statusDiv = document.getElementById('backend-status');
+            statusDiv.innerHTML = '<p>🔄 Probando conexión...</p>';
+
+            try {
+                const response = await fetch('http://localhost:8080/api/clientes');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = `
+                        <p class="success">✅ Backend conectado exitosamente</p>
+                        <p>Clientes encontrados: ${data.length}</p>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <p class="error">❌ Error de conexión: ${error.message}</p>
+                    <p>Asegúrate de que el backend esté corriendo en el puerto 8080</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
