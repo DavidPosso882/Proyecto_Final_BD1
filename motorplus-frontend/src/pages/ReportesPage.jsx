@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { reporteService } from '../services/reporteService';
 import DataTable from '../components/DataTable';
 
 const ReportesPage = () => {

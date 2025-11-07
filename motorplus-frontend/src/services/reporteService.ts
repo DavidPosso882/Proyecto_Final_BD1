@@ -16,11 +16,6 @@ export const reporteService = {
     return response.data;
   },
 
-  async getMecanicosReport(): Promise<ReportData[]> {
-    const response = await apiClient.get('/reports/3/mecanicos');
-    return response.data;
-  },
-
   // Reportes Intermedios
   async getOrdenesPorVehiculoReport(): Promise<ReportData[]> {
     const response = await apiClient.get('/reports/3/ordenes-por-vehiculo');
