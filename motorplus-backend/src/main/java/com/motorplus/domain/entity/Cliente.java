@@ -8,15 +8,20 @@ import java.util.List;
 @Table(name = "Cliente")
 public class Cliente {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_cliente")
-    private Integer idCliente;
+    @Column(name = "id_cliente", length = 20)
+    private String idCliente;
 
     @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
 
+    @Column(name = "apellido", length = 100)
+    private String apellido;
+
     @Column(name = "telefono", length = 20)
     private String telefono;
+
+    @Column(name = "email", length = 50)
+    private String email;
 
     @Column(name = "tipo", nullable = false, length = 50)
     private String tipo;
@@ -31,14 +36,20 @@ public class Cliente {
     private List<Vehiculo> vehiculos;
 
     // Getters and Setters
-    public Integer getIdCliente() { return idCliente; }
-    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
+    public String getIdCliente() { return idCliente; }
+    public void setIdCliente(String idCliente) { this.idCliente = idCliente; }
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
 
+    public String getApellido() { return apellido; }
+    public void setApellido(String apellido) { this.apellido = apellido; }
+
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }

@@ -23,8 +23,8 @@ public class Vehiculo {
     @Column(name = "anio")
     private Integer anio;
 
-    @Column(name = "id_cliente", nullable = false)
-    private Integer idCliente;
+    @Column(name = "documento_cliente", nullable = false, length = 20)
+    private String documentoCliente;
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
@@ -33,7 +33,7 @@ public class Vehiculo {
     private LocalDateTime fechaModificacion;
 
     @ManyToOne
-    @JoinColumn(name = "id_cliente", insertable = false, updatable = false)
+    @JoinColumn(name = "documento_cliente", insertable = false, updatable = false)
     private Cliente cliente;
 
     // Getters and Setters
@@ -52,8 +52,8 @@ public class Vehiculo {
     public Integer getAnio() { return anio; }
     public void setAnio(Integer anio) { this.anio = anio; }
 
-    public Integer getIdCliente() { return idCliente; }
-    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
+    public String getDocumentoCliente() { return documentoCliente; }
+    public void setDocumentoCliente(String documentoCliente) { this.documentoCliente = documentoCliente; }
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }

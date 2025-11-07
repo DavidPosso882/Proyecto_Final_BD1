@@ -8,19 +8,19 @@ public class VehiculoDTO {
     private String marca;
     private String modelo;
     private Integer anio;
-    private Integer idCliente;
+    private String documentoCliente;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaModificacion;
 
     public VehiculoDTO() {}
 
-    public VehiculoDTO(String placa, String tipo, String marca, String modelo, Integer anio, Integer idCliente) {
+    public VehiculoDTO(String placa, String tipo, String marca, String modelo, Integer anio, String documentoCliente) {
         this.placa = placa;
         this.tipo = tipo;
         this.marca = marca;
         this.modelo = modelo;
         this.anio = anio;
-        this.idCliente = idCliente;
+        this.documentoCliente = documentoCliente;
     }
 
     // Getters and Setters
@@ -39,8 +39,8 @@ public class VehiculoDTO {
     public Integer getAnio() { return anio; }
     public void setAnio(Integer anio) { this.anio = anio; }
 
-    public Integer getIdCliente() { return idCliente; }
-    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
+    public String getDocumentoCliente() { return documentoCliente; }
+    public void setDocumentoCliente(String documentoCliente) { this.documentoCliente = documentoCliente; }
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }

@@ -74,7 +74,7 @@ public class VehiculoController {
         dto.setMarca(vehiculo.getMarca());
         dto.setModelo(vehiculo.getModelo());
         dto.setAnio(vehiculo.getAnio());
-        dto.setIdCliente(vehiculo.getIdCliente());
+        dto.setDocumentoCliente(vehiculo.getDocumentoCliente());
         dto.setFechaCreacion(vehiculo.getFechaCreacion());
         dto.setFechaModificacion(vehiculo.getFechaModificacion());
         return dto;
@@ -87,7 +87,7 @@ public class VehiculoController {
         vehiculo.setMarca(dto.getMarca());
         vehiculo.setModelo(dto.getModelo());
         vehiculo.setAnio(dto.getAnio());
-        vehiculo.setIdCliente(dto.getIdCliente());
+        vehiculo.setDocumentoCliente(dto.getDocumentoCliente());
         vehiculo.setFechaCreacion(dto.getFechaCreacion());
         vehiculo.setFechaModificacion(dto.getFechaModificacion());
         return vehiculo;

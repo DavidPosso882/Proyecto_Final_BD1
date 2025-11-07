@@ -29,7 +29,7 @@ public class ClienteController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ClienteDTO> getClienteById(@PathVariable Integer id) {
+    public ResponseEntity<ClienteDTO> getClienteById(@PathVariable String id) {
         Optional<Cliente> cliente = clienteService.findById(id);
         if (cliente.isPresent()) {
             return ResponseEntity.ok(convertToDTO(cliente.get()));
@@ -47,7 +47,7 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ClienteDTO> updateCliente(@PathVariable Integer id, @RequestBody ClienteDTO clienteDTO) {
+    public ResponseEntity<ClienteDTO> updateCliente(@PathVariable String id, @RequestBody ClienteDTO clienteDTO) {
         if (!clienteService.findById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -59,7 +59,7 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCliente(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteCliente(@PathVariable String id) {
         if (!clienteService.findById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -71,7 +71,9 @@ public class ClienteController {
         ClienteDTO dto = new ClienteDTO();
         dto.setIdCliente(cliente.getIdCliente());
         dto.setNombre(cliente.getNombre());
+        dto.setApellido(cliente.getApellido());
         dto.setTelefono(cliente.getTelefono());
+        dto.setEmail(cliente.getEmail());
         dto.setTipo(cliente.getTipo());
         dto.setFechaCreacion(cliente.getFechaCreacion());
         dto.setFechaModificacion(cliente.getFechaModificacion());
@@ -82,7 +84,9 @@ public class ClienteController {
         Cliente cliente = new Cliente();
         cliente.setIdCliente(dto.getIdCliente());
         cliente.setNombre(dto.getNombre());
+        cliente.setApellido(dto.getApellido());
         cliente.setTelefono(dto.getTelefono());
+        cliente.setEmail(dto.getEmail());
         cliente.setTipo(dto.getTipo());
         cliente.setFechaCreacion(dto.getFechaCreacion());
         cliente.setFechaModificacion(dto.getFechaModificacion());

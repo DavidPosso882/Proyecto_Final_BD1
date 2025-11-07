@@ -18,7 +18,7 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
 
-    public Optional<Cliente> findById(Integer id) {
+    public Optional<Cliente> findById(String id) {
         return clienteRepository.findById(id);
     }
 
@@ -26,7 +26,7 @@ public class ClienteService {
         return clienteRepository.save(cliente);
     }
 
-    public void deleteById(Integer id) {
+    public void deleteById(String id) {
         clienteRepository.deleteById(id);
     }
 }

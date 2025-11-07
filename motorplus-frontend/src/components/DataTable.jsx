@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataTable = ({ data, columns, title }) => {
+const DataTable = ({ data, columns, title, onEdit, onDelete }) => {
   const tableBg = 'white';
   const borderColor = 'gray.200';
   const hoverBg = 'gray.50';
@@ -108,6 +108,7 @@ const DataTable = ({ data, columns, title }) => {
                   >
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
+                        onClick={() => onEdit && onEdit(item)}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: 'transparent',
@@ -130,6 +131,7 @@ const DataTable = ({ data, columns, title }) => {
                         ✏️
                       </button>
                       <button
+                        onClick={() => onDelete && onDelete(item.idCliente || item.placa || item.id || item.idOrdenTrabajo || item.idFactura || item.idServicio || item.idProveedor || item.idMecanico || item.idVehiculo)}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: 'transparent',

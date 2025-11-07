@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@chakra-ui/system": "^2.6.2",
     "axios": "^1.6.0",
     "chart.js": "^4.4.0",
     "react": "^19.2.0",
