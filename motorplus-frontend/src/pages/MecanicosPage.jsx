@@ -11,9 +11,7 @@ const MecanicosPage = () => {
   const [editingMecanico, setEditingMecanico] = useState(null);
   const [formData, setFormData] = useState({
     nombre: '',
-    apellido: '',
     telefono: '',
-    email: '',
     especialidades: []
   });
 
@@ -75,9 +73,7 @@ const MecanicosPage = () => {
     setEditingMecanico(mecanico);
     setFormData({
       nombre: mecanico.nombre,
-      apellido: mecanico.apellido,
       telefono: mecanico.telefono,
-      email: mecanico.email || '',
       especialidades: mecanico.especialidades?.map(e => e.idEspecialidad) || []
     });
     setIsModalOpen(true);
@@ -102,9 +98,7 @@ const MecanicosPage = () => {
   const resetForm = () => {
     setFormData({
       nombre: '',
-      apellido: '',
       telefono: '',
-      email: '',
       especialidades: []
     });
     setEditingMecanico(null);
@@ -127,9 +121,7 @@ const MecanicosPage = () => {
   const columns = [
     { key: 'idMecanico', label: 'ID' },
     { key: 'nombre', label: 'Nombre' },
-    { key: 'apellido', label: 'Apellido' },
     { key: 'telefono', label: 'Teléfono' },
-    { key: 'email', label: 'Email' },
     {
       key: 'especialidades',
       label: 'Especialidades',
@@ -258,24 +250,6 @@ const MecanicosPage = () => {
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Apellido *
-              </label>
-              <input
-                type="text"
-                value={formData.apellido}
-                onChange={(e) => setFormData({...formData, apellido: e.target.value})}
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
@@ -296,23 +270,6 @@ const MecanicosPage = () => {
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
           </div>
 
           <div>

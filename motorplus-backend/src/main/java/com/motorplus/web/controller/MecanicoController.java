@@ -72,6 +72,7 @@ public class MecanicoController {
         dto.setIdMecanico(mecanico.getIdMecanico());
         dto.setNombre(mecanico.getNombre());
         dto.setTelefono(mecanico.getTelefono());
+        dto.setEmail(mecanico.getEmail());
         dto.setActivo(mecanico.getActivo());
         dto.setSupervisorId(mecanico.getSupervisorId());
         dto.setFechaCreacion(mecanico.getFechaCreacion());
@@ -84,6 +85,7 @@ public class MecanicoController {
         mecanico.setIdMecanico(dto.getIdMecanico());
         mecanico.setNombre(dto.getNombre());
         mecanico.setTelefono(dto.getTelefono());
+        mecanico.setEmail(dto.getEmail());
         mecanico.setActivo(dto.getActivo());
         mecanico.setSupervisorId(dto.getSupervisorId());
         mecanico.setFechaCreacion(dto.getFechaCreacion());

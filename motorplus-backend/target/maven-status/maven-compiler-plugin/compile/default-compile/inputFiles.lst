@@ -21,6 +21,7 @@
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/ImpuestoRepository.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/service/ProveedorService.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/service/ClienteService.java
+/home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/dto/EspecialidadDTO.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/dto/ClienteDTO.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/RepuestoProveedorRepository.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/dto/ProveedorDTO.java
@@ -52,10 +53,14 @@
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/VehiculoRepository.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/entity/RegistroSup.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/OrdenTrabajoRepository.java
+/home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/dto/OrdenMecanicoDTO.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/entity/OrdenMecanicoId.java
+/home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/controller/EspecialidadController.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/service/FacturaImpuestoService.java
+/home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/dto/OrdenServicioDTO.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/OrdenServicioRepository.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/controller/VehiculoController.java
+/home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/web/dto/OrdenRepuestoDTO.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/SupervisionRepository.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/domain/repository/OrdenMecanicoRepository.java
 /home/david/GitHub/Proyecto_Final_BD1/motorplus-backend/src/main/java/com/motorplus/service/MecanicoEspecialidadService.java

@@ -3,6 +3,8 @@ package com.motorplus.web.controller;
 import com.motorplus.domain.entity.OrdenTrabajo;
 import com.motorplus.service.OrdenTrabajoService;
 import com.motorplus.web.dto.OrdenTrabajoDTO;
+import com.motorplus.web.dto.VehiculoDTO;
+import com.motorplus.web.dto.ClienteDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,10 +24,24 @@ public class OrdenTrabajoController {
 
     @GetMapping
     public ResponseEntity<List<OrdenTrabajoDTO>> getAllOrdenesTrabajo() {
-        List<OrdenTrabajoDTO> ordenes = ordenTrabajoService.findAll().stream()
+        List<OrdenTrabajo> ordenesEntities = ordenTrabajoService.findAll();
+        List<OrdenTrabajoDTO> ordenes = ordenesEntities.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ordenes);
+    }
+
+    private OrdenTrabajoDTO convertToDTOWithoutCollections(OrdenTrabajo orden) {
+        OrdenTrabajoDTO dto = new OrdenTrabajoDTO();
+        dto.setCodigo(orden.getCodigo());
+        dto.setFechaIngreso(orden.getFechaIngreso());
+        dto.setDiagnosticoInicial(orden.getDiagnosticoInicial());
+        dto.setEstado(orden.getEstado());
+        dto.setPlaca(orden.getPlaca());
+        dto.setFechaCreacion(orden.getFechaCreacion());
+        dto.setFechaModificacion(orden.getFechaModificacion());
+        dto.setUsuarioCreacion(orden.getUsuarioCreacion());
+        return dto;
     }
 
     @GetMapping("/{id}")
@@ -77,6 +93,30 @@ public class OrdenTrabajoController {
         dto.setFechaCreacion(orden.getFechaCreacion());
         dto.setFechaModificacion(orden.getFechaModificacion());
         dto.setUsuarioCreacion(orden.getUsuarioCreacion());
+
+        // Cargar datos relacionados si están disponibles
+        if (orden.getVehiculo() != null) {
+            dto.setVehiculo(new VehiculoDTO(
+                orden.getVehiculo().getPlaca(),
+                orden.getVehiculo().getTipo(),
+                orden.getVehiculo().getMarca(),
+                orden.getVehiculo().getModelo(),
+                orden.getVehiculo().getAnio(),
+                orden.getVehiculo().getDocumentoCliente()
+            ));
+        }
+
+        if (orden.getVehiculo() != null && orden.getVehiculo().getCliente() != null) {
+            dto.setCliente(new ClienteDTO(
+                orden.getVehiculo().getCliente().getIdCliente(),
+                orden.getVehiculo().getCliente().getNombre(),
+                orden.getVehiculo().getCliente().getApellido(),
+                orden.getVehiculo().getCliente().getTelefono(),
+                orden.getVehiculo().getCliente().getEmail(),
+                orden.getVehiculo().getCliente().getTipo()
+            ));
+        }
+
         return dto;
     }
 

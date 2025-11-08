@@ -97,7 +97,7 @@ const DataTable = ({ data, columns, title, onEdit, onDelete }) => {
                         color: '#374151',
                       }}
                     >
-                      {item[column.key]}
+                      {column.render ? column.render(item) : item[column.key]}
                     </td>
                   ))}
                   <td

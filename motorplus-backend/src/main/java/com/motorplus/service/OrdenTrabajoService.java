@@ -18,6 +18,10 @@ public class OrdenTrabajoService {
         return ordenTrabajoRepository.findAll();
     }
 
+    public List<OrdenTrabajo> findAllWithRelations() {
+        return ordenTrabajoRepository.findAll();
+    }
+
     public Optional<OrdenTrabajo> findById(Integer codigo) {
         return ordenTrabajoRepository.findById(codigo);
     }

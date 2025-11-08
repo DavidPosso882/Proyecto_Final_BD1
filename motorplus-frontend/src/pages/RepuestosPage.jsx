@@ -60,9 +60,10 @@ const RepuestosPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          precio: parseFloat(formData.precio),
+          precioUnitario: parseFloat(formData.precio),
           stock: parseInt(formData.stock),
-          idProveedor: parseInt(formData.idProveedor)
+          stockMinimo: parseInt(formData.stock) || 5,
+          idProveedor: parseInt(formData.idProveedor) || null
         })
       });
 
@@ -81,9 +82,9 @@ const RepuestosPage = () => {
     setFormData({
       nombre: repuesto.nombre,
       descripcion: repuesto.descripcion || '',
-      precio: repuesto.precio.toString(),
+      precio: repuesto.precioUnitario.toString(),
       stock: repuesto.stock.toString(),
-      idProveedor: repuesto.idProveedor.toString()
+      idProveedor: repuesto.idProveedor ? repuesto.idProveedor.toString() : ''
     });
     setIsModalOpen(true);
   };
@@ -125,16 +126,16 @@ const RepuestosPage = () => {
     { key: 'nombre', label: 'Nombre' },
     { key: 'descripcion', label: 'Descripción' },
     {
-      key: 'precio',
+      key: 'precioUnitario',
       label: 'Precio',
-      render: (item) => `$${item.precio.toLocaleString()}`
+      render: (item) => `$${item.precioUnitario.toLocaleString()}`
     },
     { key: 'stock', label: 'Stock' },
     {
       key: 'proveedorNombre',
       label: 'Proveedor',
       render: (item) => {
-        const proveedor = proveedores.find(p => p.idProveedor === item.idProveedor);
+        const proveedor = proveedores.find(p => p.id === item.idProveedor);
         return proveedor ? proveedor.nombre : 'N/A';
       }
     }
@@ -337,7 +338,7 @@ const RepuestosPage = () => {
               >
                 <option value="">Seleccionar proveedor</option>
                 {proveedores.map(proveedor => (
-                  <option key={proveedor.idProveedor} value={proveedor.idProveedor}>
+                  <option key={proveedor.id} value={proveedor.id}>
                     {proveedor.nombre}
                   </option>
                 ))}

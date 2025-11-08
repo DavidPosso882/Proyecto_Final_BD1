@@ -39,6 +39,11 @@ public class RepuestoController {
 
     @PostMapping
     public ResponseEntity<RepuestoDTO> createRepuesto(@RequestBody RepuestoDTO repuestoDTO) {
+        // Validar que precio no sea null
+        if (repuestoDTO.getPrecioUnitario() == null) {
+            throw new IllegalArgumentException("El precio unitario es obligatorio");
+        }
+
         Repuesto repuesto = convertToEntity(repuestoDTO);
         repuesto.setFechaCreacion(LocalDateTime.now());
         repuesto.setFechaModificacion(LocalDateTime.now());
@@ -86,6 +91,7 @@ public class RepuestoController {
         repuesto.setDescripcion(dto.getDescripcion());
         repuesto.setPrecioUnitario(dto.getPrecioUnitario());
         repuesto.setStock(dto.getStock());
+        repuesto.setStockMinimo(dto.getStockMinimo() != null ? dto.getStockMinimo() : 5);
         repuesto.setFechaCreacion(dto.getFechaCreacion());
         repuesto.setFechaModificacion(dto.getFechaModificacion());
         return repuesto;

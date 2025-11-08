@@ -22,14 +22,17 @@ const ClientesPage = () => {
 
   const fetchClientes = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch('http://localhost:8080/api/clientes');
       if (!response.ok) {
-        throw new Error('Error al cargar clientes');
+        throw new Error(`Error al cargar clientes: ${response.status} ${response.statusText}`);
       }
       const data = await response.json();
       setClientes(data);
     } catch (err) {
       setError(err.message);
+      console.error('Error fetching clientes:', err);
     } finally {
       setLoading(false);
     }
@@ -54,19 +57,28 @@ const ClientesPage = () => {
         tipo: 'INDIVIDUAL' // Default type for new clients
       };
 
+      console.log('Submitting cliente data:', submitData);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
       });
 
-      if (!response.ok) throw new Error('Error al guardar cliente');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error al guardar cliente: ${response.status} ${response.statusText}`);
+      }
+
+      const savedCliente = await response.json();
+      console.log('Cliente guardado:', savedCliente);
 
       await fetchClientes();
       setIsModalOpen(false);
       resetForm();
     } catch (err) {
       setError(err.message);
+      console.error('Error saving cliente:', err);
     }
   };
 
@@ -78,16 +90,16 @@ const ClientesPage = () => {
   };
 
   const handleEdit = (cliente) => {
-    setEditingCliente(cliente);
-    setFormData({
-      idCliente: cliente.idCliente,
-      nombre: cliente.nombre,
-      apellido: cliente.apellido,
-      telefono: cliente.telefono,
-      email: cliente.email || ''
-    });
-    setIsModalOpen(true);
-  };
+     setEditingCliente(cliente);
+     setFormData({
+       idCliente: cliente.idCliente || '',
+       nombre: cliente.nombre || '',
+       apellido: cliente.apellido || '',
+       telefono: cliente.telefono || '',
+       email: cliente.email || ''
+     });
+     setIsModalOpen(true);
+   };
 
   const handleDelete = async (id) => {
     if (!confirm('¿Estás seguro de eliminar este cliente?')) return;
@@ -240,6 +252,8 @@ const ClientesPage = () => {
                 required
                 disabled={editingCliente ? true : false}
                 placeholder={editingCliente ? '' : 'Ej: 12345678'}
+                pattern="[A-Za-z0-9]+"
+                title="Solo letras y números permitidos"
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -316,6 +330,7 @@ const ClientesPage = () => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="cliente@email.com"
                 style={{
                   width: '100%',
                   padding: '8px 12px',

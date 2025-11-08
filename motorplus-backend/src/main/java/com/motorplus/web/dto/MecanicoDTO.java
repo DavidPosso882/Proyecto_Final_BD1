@@ -6,6 +6,7 @@ public class MecanicoDTO {
     private Integer idMecanico;
     private String nombre;
     private String telefono;
+    private String email;
     private Boolean activo;
     private Integer supervisorId;
     private LocalDateTime fechaCreacion;
@@ -13,10 +14,11 @@ public class MecanicoDTO {
 
     public MecanicoDTO() {}
 
-    public MecanicoDTO(Integer idMecanico, String nombre, String telefono, Boolean activo, Integer supervisorId) {
+    public MecanicoDTO(Integer idMecanico, String nombre, String telefono, String email, Boolean activo, Integer supervisorId) {
         this.idMecanico = idMecanico;
         this.nombre = nombre;
         this.telefono = telefono;
+        this.email = email;
         this.activo = activo;
         this.supervisorId = supervisorId;
     }
@@ -30,6 +32,9 @@ public class MecanicoDTO {
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }

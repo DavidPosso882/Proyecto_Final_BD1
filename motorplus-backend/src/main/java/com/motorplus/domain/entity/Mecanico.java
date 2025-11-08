@@ -1,37 +1,45 @@
 package com.motorplus.domain.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Mecanico")
 public class Mecanico {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_mecanico")
-    private Integer idMecanico;
+     @Id
+     @GeneratedValue(strategy = GenerationType.IDENTITY)
+     @Column(name = "id_mecanico")
+     private Integer idMecanico;
 
-    @Column(name = "nombre", nullable = false, length = 100)
-    private String nombre;
+     @Column(name = "nombre", nullable = false, length = 100)
+     @NotBlank(message = "El nombre es obligatorio")
+     @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+     private String nombre;
 
-    @Column(name = "telefono", length = 20)
-    private String telefono;
+     @Column(name = "telefono", length = 20)
+     @Pattern(regexp = "^[0-9+\\-\\s()]*$", message = "El teléfono contiene caracteres inválidos")
+     @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
+     private String telefono;
 
-    @Column(name = "supervisor_id")
-    private Integer supervisorId;
+     @Transient
+     private String email;
 
-    @Column(name = "activo")
-    private Boolean activo;
+     @Column(name = "supervisor_id")
+     private Integer supervisorId;
 
-    @Column(name = "fecha_creacion")
-    private LocalDateTime fechaCreacion;
+     @Column(name = "activo")
+     private Boolean activo;
 
-    @Column(name = "fecha_modificacion")
-    private LocalDateTime fechaModificacion;
+     @Column(name = "fecha_creacion")
+     private LocalDateTime fechaCreacion;
 
-    @ManyToOne
-    @JoinColumn(name = "supervisor_id", insertable = false, updatable = false)
-    private Mecanico supervisor;
+     @Column(name = "fecha_modificacion")
+     private LocalDateTime fechaModificacion;
+
+     @ManyToOne
+     @JoinColumn(name = "supervisor_id", insertable = false, updatable = false)
+     private Mecanico supervisor;
 
     // Getters and Setters
     public Integer getIdMecanico() { return idMecanico; }
@@ -57,4 +65,7 @@ public class Mecanico {
 
     public Mecanico getSupervisor() { return supervisor; }
     public void setSupervisor(Mecanico supervisor) { this.supervisor = supervisor; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 }

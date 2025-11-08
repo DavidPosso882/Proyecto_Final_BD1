@@ -25,12 +25,17 @@ const VehiculosPage = () => {
 
   const fetchVehiculos = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch('http://localhost:8080/api/vehiculos');
-      if (!response.ok) throw new Error('Error al cargar vehículos');
+      if (!response.ok) {
+        throw new Error(`Error al cargar vehículos: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
       setVehiculos(data);
     } catch (err) {
       setError(err.message);
+      console.error('Error fetching vehiculos:', err);
     } finally {
       setLoading(false);
     }
@@ -56,35 +61,46 @@ const VehiculosPage = () => {
 
       const method = editingVehiculo ? 'PUT' : 'POST';
 
+      const submitData = {
+        ...formData,
+        anio: parseInt(formData.anio),
+        documentoCliente: formData.idCliente
+      };
+
+      console.log('Submitting vehiculo data:', submitData);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          anio: parseInt(formData.anio),
-          documentoCliente: formData.idCliente
-        })
+        body: JSON.stringify(submitData)
       });
 
-      if (!response.ok) throw new Error('Error al guardar vehículo');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error al guardar vehículo: ${response.status} ${response.statusText}`);
+      }
+
+      const savedVehiculo = await response.json();
+      console.log('Vehículo guardado:', savedVehiculo);
 
       await fetchVehiculos();
       setIsModalOpen(false);
       resetForm();
     } catch (err) {
       setError(err.message);
+      console.error('Error saving vehiculo:', err);
     }
   };
 
   const handleEdit = (vehiculo) => {
     setEditingVehiculo(vehiculo);
     setFormData({
-      placa: vehiculo.placa,
-      tipo: vehiculo.tipo,
-      marca: vehiculo.marca,
-      modelo: vehiculo.modelo,
-      anio: vehiculo.anio.toString(),
-      idCliente: vehiculo.idCliente.toString()
+      placa: vehiculo.placa || '',
+      tipo: vehiculo.tipo || '',
+      marca: vehiculo.marca || '',
+      modelo: vehiculo.modelo || '',
+      anio: vehiculo.anio?.toString() || '',
+      idCliente: vehiculo.documentoCliente?.toString() || vehiculo.idCliente?.toString() || ''
     });
     setIsModalOpen(true);
   };
@@ -244,9 +260,12 @@ const VehiculosPage = () => {
               <input
                 type="text"
                 value={formData.placa}
-                onChange={(e) => setFormData({...formData, placa: e.target.value})}
+                onChange={(e) => setFormData({...formData, placa: e.target.value.toUpperCase()})}
                 required
                 disabled={!!editingVehiculo}
+                pattern="[A-Z0-9\-]+"
+                title="Formato de placa inválido (solo letras mayúsculas, números y guiones)"
+                placeholder="ABC123"
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -254,6 +273,7 @@ const VehiculosPage = () => {
                   borderRadius: '6px',
                   fontSize: '0.875rem',
                   backgroundColor: editingVehiculo ? '#f9fafb' : 'white',
+                  textTransform: 'uppercase',
                 }}
               />
             </div>

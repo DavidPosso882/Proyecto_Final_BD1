@@ -1,6 +1,7 @@
 package com.motorplus.service;
 
 import com.motorplus.domain.entity.OrdenRepuesto;
+import com.motorplus.domain.entity.OrdenRepuestoId;
 import com.motorplus.domain.repository.OrdenRepuestoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,7 @@ public class OrdenRepuestoService {
         return ordenRepuestoRepository.findAll();
     }
 
-    public Optional<OrdenRepuesto> findById(Long id) {
+    public Optional<OrdenRepuesto> findById(OrdenRepuestoId id) {
         return ordenRepuestoRepository.findById(id);
     }
 
@@ -26,7 +27,7 @@ public class OrdenRepuestoService {
         return ordenRepuestoRepository.save(ordenRepuesto);
     }
 
-    public void deleteById(Long id) {
+    public void deleteById(OrdenRepuestoId id) {
         ordenRepuestoRepository.deleteById(id);
     }
 }

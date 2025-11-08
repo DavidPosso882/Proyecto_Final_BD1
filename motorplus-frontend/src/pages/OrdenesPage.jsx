@@ -35,12 +35,17 @@ const OrdenesPage = () => {
 
   const fetchOrdenes = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch('http://localhost:8080/api/ordenes-trabajo');
-      if (!response.ok) throw new Error('Error al cargar órdenes');
+      if (!response.ok) {
+        throw new Error(`Error al cargar órdenes: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
       setOrdenes(data);
     } catch (err) {
       setError(err.message);
+      console.error('Error fetching ordenes:', err);
     } finally {
       setLoading(false);
     }
@@ -105,41 +110,54 @@ const OrdenesPage = () => {
     e.preventDefault();
     try {
       const url = editingOrden
-        ? `http://localhost:8080/api/ordenes-trabajo/${editingOrden.idOrdenTrabajo}`
+        ? `http://localhost:8080/api/ordenes-trabajo/${editingOrden.codigo}`
         : 'http://localhost:8080/api/ordenes-trabajo';
 
       const method = editingOrden ? 'PUT' : 'POST';
 
+      const submitData = {
+        placa: formData.placaVehiculo,
+        diagnosticoInicial: formData.descripcion,
+        estado: formData.estado,
+        fechaIngreso: new Date().toISOString().split('T')[0] // Current date
+      };
+
+      console.log('Submitting orden data:', submitData);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          placa: formData.placaVehiculo
-        })
+        body: JSON.stringify(submitData)
       });
 
-      if (!response.ok) throw new Error('Error al guardar orden');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error al guardar orden: ${response.status} ${response.statusText}`);
+      }
+
+      const savedOrden = await response.json();
+      console.log('Orden guardada:', savedOrden);
 
       await fetchOrdenes();
       setIsModalOpen(false);
       resetForm();
     } catch (err) {
       setError(err.message);
+      console.error('Error saving orden:', err);
     }
   };
 
   const handleEdit = (orden) => {
     setEditingOrden(orden);
     setFormData({
-      codigo: orden.codigo,
-      descripcion: orden.descripcion || '',
-      estado: orden.estado,
-      idCliente: orden.idCliente.toString(),
-      placaVehiculo: orden.vehiculo?.placa || '',
+      codigo: orden.codigo || '',
+      descripcion: orden.diagnosticoInicial || orden.descripcion || '',
+      estado: orden.estado || 'PENDIENTE',
+      idCliente: orden.cliente?.idCliente || orden.idCliente?.toString() || '',
+      placaVehiculo: orden.vehiculo?.placa || orden.placa || '',
       mecanicos: orden.mecanicos?.map(m => m.idMecanico) || [],
       servicios: orden.servicios?.map(s => s.idServicio) || [],
-      repuestos: orden.repuestos?.map(r => ({ idRepuesto: r.idRepuesto, cantidad: r.cantidad })) || []
+      repuestos: orden.repuestos?.map(r => ({ idRepuesto: r.idRepuesto, cantidad: r.cantidadUsada || r.cantidad })) || []
     });
     setIsModalOpen(true);
   };
@@ -213,14 +231,15 @@ const OrdenesPage = () => {
       key: 'clienteNombre',
       label: 'Cliente',
       render: (item) => {
-        const cliente = clientes.find(c => c.idCliente === item.idCliente);
-        return cliente ? `${cliente.nombre} ${cliente.apellido || ''}` : 'N/A';
+        return item.cliente ? `${item.cliente.nombre} ${item.cliente.apellido || ''}` : 'N/A';
       }
     },
     {
       key: 'vehiculoInfo',
       label: 'Vehículo',
-      render: (item) => item.vehiculo ? `${item.vehiculo.marca} ${item.vehiculo.modelo}` : 'N/A'
+      render: (item) => {
+        return item.vehiculo ? `${item.vehiculo.marca} ${item.vehiculo.modelo}` : 'N/A';
+      }
     },
     {
       key: 'mecanicosCount',
@@ -344,6 +363,9 @@ const OrdenesPage = () => {
                 onChange={(e) => setFormData({...formData, codigo: e.target.value})}
                 required
                 disabled={!!editingOrden}
+                pattern="[A-Za-z0-9\-]+"
+                title="Solo letras, números y guiones permitidos"
+                placeholder="ORD001"
                 style={{
                   width: '100%',
                   padding: '8px 12px',
