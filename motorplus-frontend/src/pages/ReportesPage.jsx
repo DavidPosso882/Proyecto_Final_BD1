@@ -51,10 +51,36 @@ const ReportesPage = () => {
     { id: 10, name: 'Facturación Anual', endpoint: 'facturacion-anual', columns: [
       { key: 'mes', label: 'Mes' },
       { key: 'facturacion', label: 'Facturación' }
-    ]}
+    ]},
+    { id: 11, name: 'Clientes VIP (Gasto > Promedio)', endpoint: 'clientes-vip', columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'nombre', label: 'Nombre' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'gasto_total', label: 'Gasto Total' }
+    ]},
+    { id: 12, name: 'Vehículos Más Atendidos', endpoint: 'vehiculos-mas-servicios', columns: [
+      { key: 'placa', label: 'Placa' },
+      { key: 'vehiculo', label: 'Vehículo' },
+      { key: 'cliente', label: 'Cliente' },
+      { key: 'total_ordenes', label: 'Total Órdenes' }
+    ]},
+    { id: 13, name: 'Facturas Superiores al Promedio', endpoint: 'facturas-superiores-promedio', columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'fecha', label: 'Fecha' },
+      { key: 'total', label: 'Total' },
+      { key: 'cliente', label: 'Cliente' }
+    ]},
+    { id: 14, name: 'Historial Completo de Cliente', endpoint: 'historial-cliente', columns: [
+      { key: 'cliente', label: 'Cliente' },
+      { key: 'placa', label: 'Placa' },
+      { key: 'codigo_orden', label: 'Orden' },
+      { key: 'fecha_ingreso', label: 'Fecha' },
+      { key: 'estado', label: 'Estado' },
+      { key: 'costo_total', label: 'Total' }
+    ], requiresInput: true, inputLabel: 'Documento del Cliente' }
   ];
 
-  const loadReport = async (reportId, endpoint) => {
+  const loadReport = async (reportId, endpoint, documentoCliente = null) => {
     try {
       setLoading(true);
       setError(null);
@@ -89,13 +115,28 @@ const ReportesPage = () => {
         case 10:
           data = await reporteService.getFacturacionAnualReport();
           break;
+        case 11:
+          data = await reporteService.getClientesVIPReport();
+          break;
+        case 12:
+          data = await reporteService.getVehiculosMasServiciosReport();
+          break;
+        case 13:
+          data = await reporteService.getFacturasSuperioresPromedioReport();
+          break;
+        case 14:
+          if (!documentoCliente) {
+            throw new Error('Se requiere el documento del cliente');
+          }
+          data = await reporteService.getHistorialClienteReport(documentoCliente);
+          break;
         default:
           data = [];
       }
 
       setReportData(data);
     } catch (err) {
-      setError('Error al cargar el reporte');
+      setError('Error al cargar el reporte: ' + err.message);
       console.error(err);
     } finally {
       setLoading(false);
@@ -162,40 +203,99 @@ const ReportesPage = () => {
             </div>
             <div style={{ padding: '0 20px 20px 20px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button
-                  style={{
-                    backgroundColor: '#c60f0fff',
-                    color: 'white',
-                    padding: '10px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s',
-                    width: '100%',
-                  }}
-                  onClick={() => loadReport(report.id, report.endpoint)}
-                  disabled={loading}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.target.style.backgroundColor = '#1d4ed8';
-                      e.target.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!loading) {
-                      e.target.style.backgroundColor = '#2563eb';
-                      e.target.style.transform = 'translateY(0)';
-                    }
-                  }}
-                >
-                  👁️ Ver Reporte
-                </button>
+                {report.requiresInput ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder={report.inputLabel || 'Ingrese el valor'}
+                      id={`input-${report.id}`}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      style={{
+                        backgroundColor: '#c60f0fff',
+                        color: 'white',
+                        padding: '10px 16px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s',
+                        width: '100%',
+                      }}
+                      onClick={() => {
+                        const inputValue = document.getElementById(`input-${report.id}`).value;
+                        if (!inputValue.trim()) {
+                          alert('Por favor ingrese el documento del cliente');
+                          return;
+                        }
+                        loadReport(report.id, report.endpoint, inputValue);
+                      }}
+                      disabled={loading}
+                      onMouseEnter={(e) => {
+                        if (!loading) {
+                          e.target.style.backgroundColor = '#1d4ed8';
+                          e.target.style.transform = 'translateY(-1px)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!loading) {
+                          e.target.style.backgroundColor = '#2563eb';
+                          e.target.style.transform = 'translateY(0)';
+                        }
+                      }}
+                    >
+                      👁️ Ver Reporte
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    style={{
+                      backgroundColor: '#c60f0fff',
+                      color: 'white',
+                      padding: '10px 16px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s',
+                      width: '100%',
+                    }}
+                    onClick={() => loadReport(report.id, report.endpoint)}
+                    disabled={loading}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.target.style.backgroundColor = '#1d4ed8';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading) {
+                        e.target.style.backgroundColor = '#2563eb';
+                        e.target.style.transform = 'translateY(0)';
+                      }
+                    }}
+                  >
+                    👁️ Ver Reporte
+                  </button>
+                )}
                 <button
                   style={{
                     backgroundColor: 'transparent',

@@ -62,7 +62,7 @@ const VehiculosPage = () => {
         body: JSON.stringify({
           ...formData,
           anio: parseInt(formData.anio),
-          idCliente: parseInt(formData.idCliente)
+          documentoCliente: formData.idCliente
         })
       });
 
@@ -129,11 +129,10 @@ const VehiculosPage = () => {
     { key: 'modelo', label: 'Modelo' },
     { key: 'anio', label: 'Año' },
     {
-      key: 'clienteNombre',
+      key: 'clienteDocumento',
       label: 'Cliente',
       render: (item) => {
-        const cliente = clientes.find(c => c.idCliente === item.idCliente);
-        return cliente ? `${cliente.nombre} ${cliente.apellido || ''}` : 'N/A';
+        return item.documentoCliente || 'N/A';
       }
     }
   ];

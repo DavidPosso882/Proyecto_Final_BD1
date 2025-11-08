@@ -115,7 +115,7 @@ const OrdenesPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          idCliente: parseInt(formData.idCliente)
+          placa: formData.placaVehiculo
         })
       });
 

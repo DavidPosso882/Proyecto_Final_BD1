@@ -315,6 +315,188 @@ public class ReportController {
         );
     }
 
+    // Reporte 11: Clientes con Gasto Superior al Promedio (SUBCONSULTA)
+    @GetMapping("/11/clientes-vip")
+    public List<Map<String, Object>> getClientesVIPReport() {
+        String sql = """
+            SELECT
+                c.id_cliente,
+                c.nombre,
+                c.apellido,
+                c.tipo,
+                COUNT(DISTINCT v.placa) AS total_vehiculos,
+                COUNT(DISTINCT ot.codigo) AS total_ordenes,
+                COALESCE(SUM(f.total), 0) AS gasto_total
+            FROM Cliente c
+            LEFT JOIN Vehiculo v ON c.id_cliente = v.documento_cliente
+            LEFT JOIN OrdenTrabajo ot ON v.placa = ot.placa
+            LEFT JOIN Factura f ON ot.codigo = f.orden_codigo
+            GROUP BY c.id_cliente, c.nombre, c.apellido, c.tipo
+            HAVING COALESCE(SUM(f.total), 0) > (
+                SELECT AVG(gasto_cliente) FROM (
+                    SELECT COALESCE(SUM(f2.total), 0) AS gasto_cliente
+                    FROM Cliente c2
+                    LEFT JOIN Vehiculo v2 ON c2.id_cliente = v2.documento_cliente
+                    LEFT JOIN OrdenTrabajo ot2 ON v2.placa = ot2.placa
+                    LEFT JOIN Factura f2 ON ot2.codigo = f2.orden_codigo
+                    GROUP BY c2.id_cliente
+                ) AS gastos_promedio
+            )
+            ORDER BY gasto_total DESC
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+            Map.of("id", rs.getString("id_cliente"),
+                   "nombre", rs.getString("nombre") + " " + rs.getString("apellido"),
+                   "tipo", rs.getString("tipo"),
+                   "gasto_total", rs.getBigDecimal("gasto_total"),
+                   "total_vehiculos", rs.getInt("total_vehiculos"))
+        );
+    }
+
+    // Reporte 12: Vehículos con Más Órdenes que el Promedio (SUBCONSULTA)
+    @GetMapping("/12/vehiculos-mas-servicios")
+    public List<Map<String, Object>> getVehiculosMasServiciosReport() {
+        String sql = """
+            SELECT
+                v.placa,
+                v.marca,
+                v.modelo,
+                v.anio,
+                c.nombre AS cliente,
+                COUNT(ot.codigo) AS total_ordenes,
+                COALESCE(SUM(f.total), 0) AS gasto_total
+            FROM Vehiculo v
+            INNER JOIN Cliente c ON v.documento_cliente = c.id_cliente
+            LEFT JOIN OrdenTrabajo ot ON v.placa = ot.placa
+            LEFT JOIN Factura f ON ot.codigo = f.orden_codigo
+            GROUP BY v.placa, v.marca, v.modelo, v.anio, c.nombre
+            HAVING COUNT(ot.codigo) > (
+                SELECT AVG(ordenes_por_vehiculo) FROM (
+                    SELECT COUNT(ot2.codigo) AS ordenes_por_vehiculo
+                    FROM Vehiculo v2
+                    LEFT JOIN OrdenTrabajo ot2 ON v2.placa = ot2.placa
+                    GROUP BY v2.placa
+                ) AS ordenes_promedio
+            )
+            ORDER BY total_ordenes DESC
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+            Map.of("placa", rs.getString("placa"),
+                   "vehiculo", rs.getString("marca") + " " + rs.getString("modelo"),
+                   "cliente", rs.getString("cliente"),
+                   "total_ordenes", rs.getInt("total_ordenes"),
+                   "gasto_total", rs.getBigDecimal("gasto_total"))
+        );
+    }
+
+    // Reporte 13: Facturas con Monto Superior al Promedio (SUBCONSULTA)
+    @GetMapping("/13/facturas-superiores-promedio")
+    public List<Map<String, Object>> getFacturasSuperioresPromedioReport() {
+        String sql = """
+            SELECT
+                f.id_factura,
+                f.fecha_emision,
+                f.total,
+                f.estado_pago,
+                ot.placa,
+                c.nombre AS cliente,
+                (f.total - (SELECT AVG(total) FROM Factura)) AS diferencia_promedio
+            FROM Factura f
+            INNER JOIN OrdenTrabajo ot ON f.orden_codigo = ot.codigo
+            INNER JOIN Vehiculo v ON ot.placa = v.placa
+            INNER JOIN Cliente c ON v.documento_cliente = c.id_cliente
+            WHERE f.total > (SELECT AVG(total) FROM Factura)
+            ORDER BY f.total DESC
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+            Map.of("id", rs.getInt("id_factura"),
+                   "fecha", rs.getDate("fecha_emision"),
+                   "total", rs.getBigDecimal("total"),
+                   "cliente", rs.getString("cliente"),
+                   "placa", rs.getString("placa"))
+        );
+    }
+
+    // Reporte 14: Historial Completo de Cliente (por documento)
+    @GetMapping("/14/historial-cliente/{documentoCliente}")
+    public List<Map<String, Object>> getHistorialClienteReport(@PathVariable String documentoCliente) {
+        String sql = """
+            SELECT
+                c.nombre AS cliente,
+                c.apellido,
+                c.telefono,
+                c.email,
+                v.placa,
+                v.marca,
+                v.modelo,
+                v.anio,
+                ot.codigo AS codigo_orden,
+                ot.fecha_ingreso,
+                ot.diagnostico_inicial,
+                ot.estado,
+                GROUP_CONCAT(DISTINCT s.nombre SEPARATOR ', ') AS servicios,
+                GROUP_CONCAT(DISTINCT r.nombre SEPARATOR ', ') AS repuestos,
+                GROUP_CONCAT(DISTINCT m.nombre SEPARATOR ', ') AS mecanicos,
+                COALESCE(f.total, 0) AS costo_total,
+                f.estado_pago,
+                f.fecha_emision AS fecha_factura
+            FROM Cliente c
+            INNER JOIN Vehiculo v ON c.id_cliente = v.documento_cliente
+            INNER JOIN OrdenTrabajo ot ON v.placa = ot.placa
+            LEFT JOIN OrdenServicio os ON ot.codigo = os.orden_codigo
+            LEFT JOIN Servicio s ON os.servicio_codigo = s.codigo
+            LEFT JOIN OrdenRepuesto orep ON ot.codigo = orep.orden_codigo
+            LEFT JOIN Repuesto r ON orep.repuesto_codigo = r.codigo
+            LEFT JOIN OrdenMecanico om ON ot.codigo = om.orden_codigo
+            LEFT JOIN Mecanico m ON om.mecanico_id = m.id_mecanico
+            LEFT JOIN Factura f ON ot.codigo = f.orden_codigo
+            WHERE c.id_cliente = ?
+            GROUP BY c.nombre, c.apellido, c.telefono, c.email, v.placa, v.marca, v.modelo, v.anio,
+                     ot.codigo, ot.fecha_ingreso, ot.diagnostico_inicial, ot.estado,
+                     f.total, f.estado_pago, f.fecha_emision
+            ORDER BY ot.fecha_ingreso DESC
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            // Create a HashMap to avoid Map.of null restrictions
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            try {
+                result.put("cliente", rs.getString("cliente") + " " + rs.getString("apellido"));
+                result.put("telefono", rs.getString("telefono"));
+                result.put("email", rs.getString("email"));
+                result.put("placa", rs.getString("placa"));
+                result.put("vehiculo", rs.getString("marca") + " " + rs.getString("modelo") + " " + rs.getInt("anio"));
+                result.put("codigo_orden", rs.getInt("codigo_orden"));
+                result.put("fecha_ingreso", rs.getDate("fecha_ingreso"));
+                result.put("diagnostico", rs.getString("diagnostico_inicial"));
+                result.put("estado", rs.getString("estado"));
+                result.put("servicios", rs.getString("servicios"));
+                result.put("repuestos", rs.getString("repuestos"));
+                result.put("mecanicos", rs.getString("mecanicos"));
+                result.put("costo_total", rs.getBigDecimal("costo_total"));
+                result.put("estado_pago", rs.getString("estado_pago"));
+                result.put("fecha_factura", rs.getDate("fecha_factura"));
+            } catch (Exception e) {
+                System.err.println("Error processing row " + rowNum + ": " + e.getMessage());
+                result.put("cliente", "");
+                result.put("telefono", "");
+                result.put("email", "");
+                result.put("placa", "");
+                result.put("vehiculo", "");
+                result.put("codigo_orden", 0);
+                result.put("fecha_ingreso", null);
+                result.put("diagnostico", "");
+                result.put("estado", "");
+                result.put("servicios", "");
+                result.put("repuestos", "");
+                result.put("mecanicos", "");
+                result.put("costo_total", 0);
+                result.put("estado_pago", "");
+                result.put("fecha_factura", null);
+            }
+            return result;
+        }, documentoCliente);
+    }
+
     // Exportar Reporte a PDF
     @GetMapping("/export/{reportId}")
     public ResponseEntity<byte[]> exportReportToPDF(@PathVariable int reportId) {
@@ -420,6 +602,16 @@ public class ReportController {
             case 8 -> getRendimientoMecanicosReport();
             case 9 -> getRepuestosMasUtilizadosReport();
             case 10 -> getFacturacionAnualReport();
+            case 11 -> getClientesVIPReport();
+            case 12 -> getVehiculosMasServiciosReport();
+            case 13 -> getFacturasSuperioresPromedioReport();
+            default -> List.of();
+        };
+    }
+
+    private List<Map<String, Object>> getReportData(int reportId, String documentoCliente) {
+        return switch (reportId) {
+            case 14 -> getHistorialClienteReport(documentoCliente);
             default -> List.of();
         };
     }
@@ -435,6 +627,10 @@ public class ReportController {
             case 8 -> "Rendimiento de Mecánicos";
             case 9 -> "Repuestos Más Utilizados";
             case 10 -> "Facturación Anual";
+            case 11 -> "Clientes VIP (Gasto > Promedio)";
+            case 12 -> "Vehículos Más Atendidos";
+            case 13 -> "Facturas Superiores al Promedio";
+            case 14 -> "Historial Completo de Cliente";
             default -> "Reporte " + reportId;
         };
     }
