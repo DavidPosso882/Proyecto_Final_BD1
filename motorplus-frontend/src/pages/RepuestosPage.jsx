@@ -49,30 +49,48 @@ const RepuestosPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Obtener el ID del repuesto (puede ser idRepuesto o codigo)
+      const repuestoId = editingRepuesto ? (editingRepuesto.idRepuesto || editingRepuesto.codigo) : null;
+      
       const url = editingRepuesto
-        ? `http://localhost:8080/api/repuestos/${editingRepuesto.idRepuesto}`
+        ? `http://localhost:8080/api/repuestos/${repuestoId}`
         : 'http://localhost:8080/api/repuestos';
 
       const method = editingRepuesto ? 'PUT' : 'POST';
 
+      const submitData = {
+        nombre: formData.nombre,
+        descripcion: formData.descripcion,
+        precioUnitario: parseFloat(formData.precio),
+        stock: parseInt(formData.stock),
+        stockMinimo: parseInt(formData.stock) || 5,
+        idProveedor: formData.idProveedor ? parseInt(formData.idProveedor) : null
+      };
+
+      console.log('Repuesto a editar:', editingRepuesto);
+      console.log('ID del repuesto:', repuestoId);
+      console.log('Enviando datos:', submitData);
+      console.log('URL:', url);
+      console.log('Método:', method);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          precioUnitario: parseFloat(formData.precio),
-          stock: parseInt(formData.stock),
-          stockMinimo: parseInt(formData.stock) || 5,
-          idProveedor: parseInt(formData.idProveedor) || null
-        })
+        body: JSON.stringify(submitData)
       });
 
-      if (!response.ok) throw new Error('Error al guardar repuesto');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error del servidor:', errorText);
+        throw new Error('Error al guardar repuesto: ' + errorText);
+      }
 
       await fetchRepuestos();
       setIsModalOpen(false);
       resetForm();
+      setError(null);
     } catch (err) {
+      console.error('Error completo:', err);
       setError(err.message);
     }
   };

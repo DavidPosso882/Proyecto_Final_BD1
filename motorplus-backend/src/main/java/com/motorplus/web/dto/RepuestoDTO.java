@@ -1,15 +1,19 @@
 package com.motorplus.web.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class RepuestoDTO {
+    @JsonProperty("codigo")
     private Integer codigo;
     private String nombre;
     private String descripcion;
     private Integer stock;
     private Integer stockMinimo;
     private BigDecimal precioUnitario;
+    private Integer idProveedor;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaModificacion;
 
@@ -27,6 +31,11 @@ public class RepuestoDTO {
     // Getters and Setters
     public Integer getCodigo() { return codigo; }
     public void setCodigo(Integer codigo) { this.codigo = codigo; }
+    
+    // Alias para compatibilidad con frontend - ambos campos tendrán el mismo valor
+    @JsonProperty("idRepuesto")
+    public Integer getIdRepuesto() { return codigo; }
+    public void setIdRepuesto(Integer idRepuesto) { this.codigo = idRepuesto; }
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
@@ -42,6 +51,9 @@ public class RepuestoDTO {
 
     public BigDecimal getPrecioUnitario() { return precioUnitario; }
     public void setPrecioUnitario(BigDecimal precioUnitario) { this.precioUnitario = precioUnitario; }
+
+    public Integer getIdProveedor() { return idProveedor; }
+    public void setIdProveedor(Integer idProveedor) { this.idProveedor = idProveedor; }
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
