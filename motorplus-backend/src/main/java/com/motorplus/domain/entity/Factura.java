@@ -28,6 +28,10 @@ public class Factura {
     @Column(name = "orden_codigo", nullable = false)
     private Integer ordenCodigo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "orden_codigo", insertable = false, updatable = false)
+    private OrdenTrabajo ordenTrabajo;
+
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
@@ -70,4 +74,7 @@ public class Factura {
 
     public String getUsuarioCreacion() { return usuarioCreacion; }
     public void setUsuarioCreacion(String usuarioCreacion) { this.usuarioCreacion = usuarioCreacion; }
+
+    public OrdenTrabajo getOrdenTrabajo() { return ordenTrabajo; }
+    public void setOrdenTrabajo(OrdenTrabajo ordenTrabajo) { this.ordenTrabajo = ordenTrabajo; }
 }

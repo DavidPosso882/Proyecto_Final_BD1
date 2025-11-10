@@ -4,6 +4,7 @@ import com.motorplus.domain.entity.OrdenServicio;
 import com.motorplus.domain.repository.OrdenServicioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,5 +24,10 @@ public class OrdenServicioService {
 
     public void delete(OrdenServicio ordenServicio) {
         ordenServicioRepository.delete(ordenServicio);
+    }
+
+    @Transactional
+    public void deleteByOrdenCodigo(Integer ordenCodigo) {
+        ordenServicioRepository.deleteByOrdenCodigo(ordenCodigo);
     }
 }

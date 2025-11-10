@@ -32,45 +32,6 @@ const ReportesPage = () => {
       { key: 'fecha', label: 'Fecha' },
       { key: 'total', label: 'Total' }
     ]},
-    { id: 5, name: 'Mecánicos por Especialidad', endpoint: 'mecanicos-por-especialidad', columns: [
-      { key: 'id', label: 'ID' },
-      { key: 'nombre', label: 'Nombre' },
-      { key: 'telefono', label: 'Teléfono' }
-    ]},
-    { id: 7, name: 'Ingresos Mensuales', endpoint: 'ingresos-mensuales', columns: [
-      { key: 'mes', label: 'Mes' },
-      { key: 'total', label: 'Total' }
-    ]},
-    { id: 8, name: 'Rendimiento de Mecánicos', endpoint: 'rendimiento-mecanicos', columns: [
-      { key: 'mecanico', label: 'Mecánico' },
-      { key: 'ordenes_completadas', label: 'Órdenes Completadas' }
-    ]},
-    { id: 9, name: 'Repuestos Más Utilizados', endpoint: 'repuestos-mas-utilizados', columns: [
-      { key: 'repuesto', label: 'Repuesto' },
-      { key: 'usos', label: 'Usos' }
-    ]},
-    { id: 10, name: 'Facturación Anual', endpoint: 'facturacion-anual', columns: [
-      { key: 'mes', label: 'Mes' },
-      { key: 'facturacion', label: 'Facturación' }
-    ]},
-    { id: 11, name: 'Clientes VIP (Gasto > Promedio)', endpoint: 'clientes-vip', columns: [
-      { key: 'id', label: 'ID' },
-      { key: 'nombre', label: 'Nombre' },
-      { key: 'tipo', label: 'Tipo' },
-      { key: 'gasto_total', label: 'Gasto Total' }
-    ]},
-    { id: 12, name: 'Vehículos Más Atendidos', endpoint: 'vehiculos-mas-servicios', columns: [
-      { key: 'placa', label: 'Placa' },
-      { key: 'vehiculo', label: 'Vehículo' },
-      { key: 'cliente', label: 'Cliente' },
-      { key: 'total_ordenes', label: 'Total Órdenes' }
-    ]},
-    { id: 13, name: 'Facturas Superiores al Promedio', endpoint: 'facturas-superiores-promedio', columns: [
-      { key: 'id', label: 'ID' },
-      { key: 'fecha', label: 'Fecha' },
-      { key: 'total', label: 'Total' },
-      { key: 'cliente', label: 'Cliente' }
-    ]},
     { id: 14, name: 'Historial Completo de Cliente', endpoint: 'historial-cliente', columns: [
       { key: 'cliente', label: 'Cliente' },
       { key: 'placa', label: 'Placa' },
@@ -104,30 +65,6 @@ const ReportesPage = () => {
           break;
         case 4:
           data = await reporteService.getFacturasPendientesReport();
-          break;
-        case 5:
-          data = await reporteService.getMecanicosPorEspecialidadReport();
-          break;
-        case 7:
-          data = await reporteService.getIngresosMensualesReport();
-          break;
-        case 8:
-          data = await reporteService.getRendimientoMecanicosReport();
-          break;
-        case 9:
-          data = await reporteService.getRepuestosMasUtilizadosReport();
-          break;
-        case 10:
-          data = await reporteService.getFacturacionAnualReport();
-          break;
-        case 11:
-          data = await reporteService.getClientesVIPReport();
-          break;
-        case 12:
-          data = await reporteService.getVehiculosMasServiciosReport();
-          break;
-        case 13:
-          data = await reporteService.getFacturasSuperioresPromedioReport();
           break;
         case 14:
           if (!documentoCliente) {
@@ -235,7 +172,7 @@ const ReportesPage = () => {
                     />
                     <button
                       style={{
-                        backgroundColor: '#c60f0fff',
+                        backgroundColor: '#c60f0f',
                         color: 'white',
                         padding: '10px 16px',
                         border: 'none',
@@ -261,13 +198,13 @@ const ReportesPage = () => {
                       disabled={loading}
                       onMouseEnter={(e) => {
                         if (!loading) {
-                          e.target.style.backgroundColor = '#1d4ed8';
+                          e.target.style.backgroundColor = '#2563eb';
                           e.target.style.transform = 'translateY(-1px)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!loading) {
-                          e.target.style.backgroundColor = '#2563eb';
+                          e.target.style.backgroundColor = '#c60f0f';
                           e.target.style.transform = 'translateY(0)';
                         }
                       }}
@@ -278,7 +215,7 @@ const ReportesPage = () => {
                 ) : (
                   <button
                     style={{
-                      backgroundColor: '#c60f0fff',
+                      backgroundColor: '#c60f0f',
                       color: 'white',
                       padding: '10px 16px',
                       border: 'none',
@@ -297,13 +234,13 @@ const ReportesPage = () => {
                     disabled={loading}
                     onMouseEnter={(e) => {
                       if (!loading) {
-                        e.target.style.backgroundColor = '#1d4ed8';
+                        e.target.style.backgroundColor = '#2563eb';
                         e.target.style.transform = 'translateY(-1px)';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!loading) {
-                        e.target.style.backgroundColor = '#2563eb';
+                        e.target.style.backgroundColor = '#c60f0f';
                         e.target.style.transform = 'translateY(0)';
                       }
                     }}

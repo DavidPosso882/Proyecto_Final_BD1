@@ -21,6 +21,14 @@ public class RepuestoProveedor {
     @Column(name = "tiempo_entrega_dias")
     private Integer tiempoEntregaDias;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "repuesto_codigo", insertable = false, updatable = false)
+    private Repuesto repuesto;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proveedor_id", insertable = false, updatable = false)
+    private Proveedor proveedor;
+
     // Getters and Setters
     public Integer getRepuestoCodigo() { return repuestoCodigo; }
     public void setRepuestoCodigo(Integer repuestoCodigo) { this.repuestoCodigo = repuestoCodigo; }
@@ -33,4 +41,10 @@ public class RepuestoProveedor {
 
     public Integer getTiempoEntregaDias() { return tiempoEntregaDias; }
     public void setTiempoEntregaDias(Integer tiempoEntregaDias) { this.tiempoEntregaDias = tiempoEntregaDias; }
+
+    public Repuesto getRepuesto() { return repuesto; }
+    public void setRepuesto(Repuesto repuesto) { this.repuesto = repuesto; }
+
+    public Proveedor getProveedor() { return proveedor; }
+    public void setProveedor(Proveedor proveedor) { this.proveedor = proveedor; }
 }

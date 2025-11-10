@@ -5,6 +5,7 @@ import com.motorplus.domain.entity.OrdenRepuestoId;
 import com.motorplus.domain.repository.OrdenRepuestoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,5 +30,10 @@ public class OrdenRepuestoService {
 
     public void deleteById(OrdenRepuestoId id) {
         ordenRepuestoRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteByOrdenCodigo(Integer ordenCodigo) {
+        ordenRepuestoRepository.deleteByOrdenCodigo(ordenCodigo);
     }
 }

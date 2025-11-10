@@ -405,75 +405,128 @@ const FacturasPage = () => {
               </select>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Subtotal *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontWeight: '500' }}>$</span>
-                <input
-                  type="number"
-                  value={formData.subtotal}
-                  onChange={(e) => setFormData({...formData, subtotal: e.target.value})}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 28px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem',
-                  }}
-                />
-              </div>
-            </div>
+            <div style={{ gridColumn: '1 / -1', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', marginTop: '8px' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+                Desglose de Factura
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                    Subtotal Base (Servicios + Repuestos)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '0.875rem' }}>$</span>
+                    <input
+                      type="text"
+                      value={(parseFloat(formData.subtotal) / 1.15 || 0).toFixed(2)}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '6px 12px 6px 28px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        backgroundColor: 'white',
+                        color: '#374151',
+                      }}
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                IVA (19%)
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontWeight: '500' }}>$</span>
-                <input
-                  type="text"
-                  value={(parseFloat(formData.subtotal) * 0.19 || 0).toFixed(2)}
-                  readOnly
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 28px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem',
-                    backgroundColor: '#f9fafb',
-                    color: '#6b7280',
-                  }}
-                />
-              </div>
-            </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}>
+                    Mano de Obra (15%)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontSize: '0.875rem' }}>$</span>
+                    <input
+                      type="text"
+                      value={((parseFloat(formData.subtotal) / 1.15) * 0.15 || 0).toFixed(2)}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '6px 12px 6px 28px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        backgroundColor: 'white',
+                        color: '#374151',
+                      }}
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Total
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#16a34a', fontWeight: '600' }}>$</span>
-                <input
-                  type="text"
-                  value={formData.total}
-                  readOnly
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 28px',
-                    border: '2px solid #16a34a',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem',
-                    backgroundColor: '#f0fdf4',
-                    fontWeight: '600',
-                    color: '#16a34a',
-                  }}
-                />
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                    Subtotal
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#374151', fontWeight: '500', fontSize: '0.875rem' }}>$</span>
+                    <input
+                      type="text"
+                      value={(parseFloat(formData.subtotal) || 0).toFixed(2)}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '6px 12px 6px 28px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        backgroundColor: '#f3f4f6',
+                        color: '#374151',
+                        fontWeight: '500',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                    IVA (19%)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#374151', fontSize: '0.875rem' }}>$</span>
+                    <input
+                      type="text"
+                      value={(parseFloat(formData.subtotal) * 0.19 || 0).toFixed(2)}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '6px 12px 6px 28px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem',
+                        backgroundColor: '#f3f4f6',
+                        color: '#374151',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#16a34a', marginBottom: '4px' }}>
+                    TOTAL A PAGAR
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#16a34a', fontWeight: '700', fontSize: '1rem' }}>$</span>
+                    <input
+                      type="text"
+                      value={formData.total}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 32px',
+                        border: '2px solid #16a34a',
+                        borderRadius: '8px',
+                        fontSize: '1.125rem',
+                        backgroundColor: '#f0fdf4',
+                        fontWeight: '700',
+                        color: '#16a34a',
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

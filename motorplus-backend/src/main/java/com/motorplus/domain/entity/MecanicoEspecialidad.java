@@ -21,6 +21,14 @@ public class MecanicoEspecialidad {
     @Column(name = "fecha_certificacion")
     private LocalDate fechaCertificacion;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mecanico_id", insertable = false, updatable = false)
+    private Mecanico mecanico;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "especialidad_codigo", insertable = false, updatable = false)
+    private Especialidad especialidad;
+
     // Getters and Setters
     public Integer getMecanicoId() { return mecanicoId; }
     public void setMecanicoId(Integer mecanicoId) { this.mecanicoId = mecanicoId; }
@@ -33,4 +41,10 @@ public class MecanicoEspecialidad {
 
     public LocalDate getFechaCertificacion() { return fechaCertificacion; }
     public void setFechaCertificacion(LocalDate fechaCertificacion) { this.fechaCertificacion = fechaCertificacion; }
+
+    public Mecanico getMecanico() { return mecanico; }
+    public void setMecanico(Mecanico mecanico) { this.mecanico = mecanico; }
+
+    public Especialidad getEspecialidad() { return especialidad; }
+    public void setEspecialidad(Especialidad especialidad) { this.especialidad = especialidad; }
 }

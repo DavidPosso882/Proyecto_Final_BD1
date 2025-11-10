@@ -24,6 +24,14 @@ public class RegistroSup {
     @Column(name = "mecanico_id", nullable = false)
     private Integer mecanicoId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supervisor_id", insertable = false, updatable = false)
+    private Mecanico supervisor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mecanico_id", insertable = false, updatable = false)
+    private Mecanico mecanico;
+
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
@@ -45,4 +53,10 @@ public class RegistroSup {
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public Mecanico getSupervisor() { return supervisor; }
+    public void setSupervisor(Mecanico supervisor) { this.supervisor = supervisor; }
+
+    public Mecanico getMecanico() { return mecanico; }
+    public void setMecanico(Mecanico mecanico) { this.mecanico = mecanico; }
 }

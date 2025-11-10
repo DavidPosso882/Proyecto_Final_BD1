@@ -27,6 +27,7 @@ const OrdenesPage = () => {
     repuestos: []
   });
   const [selectedServicios, setSelectedServicios] = useState([]); // IDs de servicios seleccionados
+  const [selectedRepuestos, setSelectedRepuestos] = useState([]); // Array de { repuestoCodigo, cantidadUsada }
 
   useEffect(() => {
     fetchOrdenes();
@@ -129,6 +130,16 @@ const OrdenesPage = () => {
         };
       });
 
+      // Preparar los repuestos seleccionados con la estructura correcta
+      const repuestosData = selectedRepuestos.map(repuestoItem => {
+        const repuesto = repuestos.find(r => (r.codigo || r.idRepuesto) === repuestoItem.repuestoCodigo);
+        return {
+          repuestoCodigo: repuestoItem.repuestoCodigo,
+          cantidadUsada: repuestoItem.cantidadUsada,
+          precioAplicado: repuesto ? repuesto.precioUnitario : 0
+        };
+      });
+
       // Preparar el mecánico responsable
       const mecanicosData = formData.mecanicoResponsableId 
         ? [{
@@ -144,10 +155,15 @@ const OrdenesPage = () => {
         estado: formData.estado,
         fechaIngreso: new Date().toISOString().split('T')[0], // Current date
         servicios: serviciosData,
+        repuestos: repuestosData,
         mecanicos: mecanicosData
       };
 
+      console.log('=== ENVIANDO ORDEN AL SERVIDOR ===');
       console.log('Submitting orden data:', submitData);
+      console.log('Servicios:', serviciosData.length);
+      console.log('Repuestos:', repuestosData.length, repuestosData);
+      console.log('Mecánicos:', mecanicosData.length, mecanicosData);
 
       const response = await fetch(url, {
         method,
@@ -195,6 +211,13 @@ const OrdenesPage = () => {
     // Cargar los servicios seleccionados
     const serviciosSeleccionados = orden.servicios?.map(s => s.servicioCodigo || s.servicio?.codigo) || [];
     setSelectedServicios(serviciosSeleccionados);
+    
+    // Cargar los repuestos seleccionados
+    const repuestosSeleccionados = orden.repuestos?.map(r => ({
+      repuestoCodigo: r.repuestoCodigo || r.codigo,
+      cantidadUsada: r.cantidadUsada || r.cantidad || 1
+    })) || [];
+    setSelectedRepuestos(repuestosSeleccionados);
     
     setIsModalOpen(true);
   };
@@ -276,6 +299,7 @@ const OrdenesPage = () => {
       repuestos: []
     });
     setSelectedServicios([]);
+    setSelectedRepuestos([]);
     setEditingOrden(null);
   };
 
@@ -301,13 +325,21 @@ const OrdenesPage = () => {
     }
   };
 
-  const handleRepuestoChange = (repuestoId, cantidad) => {
-    setFormData(prev => ({
-      ...prev,
-      repuestos: cantidad > 0
-        ? [...prev.repuestos.filter(r => r.idRepuesto !== repuestoId), { idRepuesto: repuestoId, cantidad }]
-        : prev.repuestos.filter(r => r.idRepuesto !== repuestoId)
-    }));
+  const handleRepuestoChange = (repuestoCodigo, checked) => {
+    if (checked) {
+      setSelectedRepuestos(prev => [...prev, { repuestoCodigo, cantidadUsada: 1 }]);
+    } else {
+      setSelectedRepuestos(prev => prev.filter(r => r.repuestoCodigo !== repuestoCodigo));
+    }
+  };
+
+  const handleRepuestoCantidadChange = (repuestoCodigo, cantidadUsada) => {
+    setSelectedRepuestos(prev => 
+      prev.map(r => r.repuestoCodigo === repuestoCodigo 
+        ? { ...r, cantidadUsada: parseInt(cantidadUsada) || 1 }
+        : r
+      )
+    );
   };
 
   const columns = [
@@ -659,6 +691,104 @@ const OrdenesPage = () => {
               <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#eff6ff', borderRadius: '6px' }}>
                 <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>
                   {selectedServicios.length} servicio{selectedServicios.length !== 1 ? 's' : ''} seleccionado{selectedServicios.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Sección de Repuestos */}
+          <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fbbf24' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151', marginBottom: '12px' }}>
+              Repuestos
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', maxHeight: '300px', overflowY: 'auto', padding: '8px' }}>
+              {repuestos.length > 0 ? (
+                repuestos.map(repuesto => {
+                  const repuestoCodigo = repuesto.codigo || repuesto.idRepuesto;
+                  const isSelected = selectedRepuestos.some(r => r.repuestoCodigo === repuestoCodigo);
+                  const cantidadActual = selectedRepuestos.find(r => r.repuestoCodigo === repuestoCodigo)?.cantidadUsada || 1;
+                  
+                  return (
+                    <div
+                      key={repuestoCodigo}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        padding: '12px',
+                        backgroundColor: 'white',
+                        border: isSelected ? '2px solid #f59e0b' : '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <label style={{ display: 'flex', alignItems: 'flex-start', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleRepuestoChange(repuestoCodigo, e.target.checked)}
+                          style={{
+                            marginRight: '8px',
+                            marginTop: '2px',
+                            width: '16px',
+                            height: '16px',
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                            {repuesto.nombre}
+                          </div>
+                          {repuesto.descripcion && (
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>
+                              {repuesto.descripcion}
+                            </div>
+                          )}
+                          {repuesto.precioUnitario && (
+                            <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#059669', marginBottom: '8px' }}>
+                              ${parseFloat(repuesto.precioUnitario).toFixed(2)}
+                            </div>
+                          )}
+                          {repuesto.stock !== undefined && (
+                            <div style={{ fontSize: '0.75rem', color: repuesto.stock > 5 ? '#059669' : '#dc2626', marginBottom: '8px' }}>
+                              Stock: {repuesto.stock}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                      {isSelected && (
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <label style={{ fontSize: '0.75rem', color: '#374151', fontWeight: '500' }}>
+                            Cantidad:
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max={repuesto.stock || 999}
+                            value={cantidadActual}
+                            onChange={(e) => handleRepuestoCantidadChange(repuestoCodigo, e.target.value)}
+                            style={{
+                              width: '70px',
+                              padding: '4px 8px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '4px',
+                              fontSize: '0.875rem',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                  No hay repuestos disponibles
+                </div>
+              )}
+            </div>
+            {selectedRepuestos.length > 0 && (
+              <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#fef3c7', borderRadius: '6px' }}>
+                <span style={{ fontSize: '0.875rem', color: '#92400e', fontWeight: '500' }}>
+                  {selectedRepuestos.length} repuesto{selectedRepuestos.length !== 1 ? 's' : ''} seleccionado{selectedRepuestos.length !== 1 ? 's' : ''}
                 </span>
               </div>
             )}

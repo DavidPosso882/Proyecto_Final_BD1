@@ -1234,13 +1234,13 @@ public class ReportController {
             document.add(detalleTable);
             document.add(new Paragraph("\n"));
             
-            // Totales
+            // Totales con desglose de mano de obra
             Table totalesTable = new Table(new float[]{3, 2});
             totalesTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
             
             // Convertir totales a BigDecimal de forma segura
             Object subtotalObj = factura.get("subtotal");
-            java.math.BigDecimal subtotal = subtotalObj instanceof Number 
+            java.math.BigDecimal subtotalConManoObra = subtotalObj instanceof Number 
                 ? new java.math.BigDecimal(((Number) subtotalObj).doubleValue()) 
                 : java.math.BigDecimal.ZERO;
             
@@ -1249,8 +1249,23 @@ public class ReportController {
                 ? new java.math.BigDecimal(((Number) totalObj).doubleValue()) 
                 : java.math.BigDecimal.ZERO;
             
-            java.math.BigDecimal iva = total.subtract(subtotal);
+            // Calcular el subtotal base (sin mano de obra)
+            // El subtotal guardado incluye la mano de obra (15%), así que: subtotalConManoObra = subtotalBase * 1.15
+            // Por lo tanto: subtotalBase = subtotalConManoObra / 1.15
+            java.math.BigDecimal subtotalBase = subtotalConManoObra.divide(
+                new java.math.BigDecimal("1.15"), 
+                2, 
+                java.math.RoundingMode.HALF_UP
+            );
             
+            // Calcular mano de obra (15% del subtotal base)
+            java.math.BigDecimal manoObra = subtotalBase.multiply(new java.math.BigDecimal("0.15"))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+            
+            // Calcular IVA (19% del subtotal con mano de obra)
+            java.math.BigDecimal iva = total.subtract(subtotalConManoObra);
+            
+            // Espaciador
             totalesTable.addCell(new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph(""))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
@@ -1258,13 +1273,31 @@ public class ReportController {
                 .add(new Paragraph(""))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
             
+            // Subtotal Base (Servicios + Repuestos)
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("SUBTOTAL BASE:").setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("$" + String.format("%,.2f", subtotalBase)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            // Mano de Obra (15%)
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("MANO DE OBRA (15%):").setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("$" + String.format("%,.2f", manoObra)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            // Subtotal (Base + Mano de Obra)
             totalesTable.addCell(new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("SUBTOTAL:").setBold().setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
             totalesTable.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph("$" + String.format("%,.2f", subtotal)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .add(new Paragraph("$" + String.format("%,.2f", subtotalConManoObra)).setBold().setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
             
+            // IVA (19%)
             totalesTable.addCell(new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("IVA (19%):").setBold().setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
@@ -1272,6 +1305,7 @@ public class ReportController {
                 .add(new Paragraph("$" + String.format("%,.2f", iva)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
             
+            // Total a Pagar
             totalesTable.addCell(new com.itextpdf.layout.element.Cell()
                 .add(new Paragraph("TOTAL A PAGAR:").setBold().setFontSize(12).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
                 .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
