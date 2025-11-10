@@ -45,42 +45,110 @@ public class OrdenTrabajoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrdenTrabajoDTO> getOrdenTrabajoById(@PathVariable Integer id) {
-        Optional<OrdenTrabajo> orden = ordenTrabajoService.findById(id);
-        if (orden.isPresent()) {
-            return ResponseEntity.ok(convertToDTO(orden.get()));
+    public ResponseEntity<OrdenTrabajoDTO> getOrdenTrabajoById(@PathVariable String id) {
+        try {
+            Integer codigo = Integer.parseInt(id);
+            Optional<OrdenTrabajo> orden = ordenTrabajoService.findById(codigo);
+            if (orden.isPresent()) {
+                return ResponseEntity.ok(convertToDTO(orden.get()));
+            }
+            return ResponseEntity.notFound().build();
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.notFound().build();
     }
 
     @PostMapping
     public ResponseEntity<OrdenTrabajoDTO> createOrdenTrabajo(@RequestBody OrdenTrabajoDTO ordenTrabajoDTO) {
-        OrdenTrabajo orden = convertToEntity(ordenTrabajoDTO);
-        orden.setFechaCreacion(LocalDateTime.now());
-        orden.setFechaModificacion(LocalDateTime.now());
-        OrdenTrabajo savedOrden = ordenTrabajoService.save(orden);
-        return ResponseEntity.ok(convertToDTO(savedOrden));
+        try {
+            OrdenTrabajo orden = convertToEntity(ordenTrabajoDTO);
+            orden.setFechaCreacion(LocalDateTime.now());
+            orden.setFechaModificacion(LocalDateTime.now());
+            orden.setUsuarioCreacion("admin");
+            
+            // Guardar la orden primero para obtener el código generado
+            OrdenTrabajo savedOrden = ordenTrabajoService.save(orden);
+            
+            // Procesar relaciones si existen
+            if (ordenTrabajoDTO.getServicios() != null && !ordenTrabajoDTO.getServicios().isEmpty()) {
+                ordenTrabajoService.saveOrdenServicios(savedOrden.getCodigo(), ordenTrabajoDTO.getServicios());
+            }
+            
+            if (ordenTrabajoDTO.getRepuestos() != null && !ordenTrabajoDTO.getRepuestos().isEmpty()) {
+                ordenTrabajoService.saveOrdenRepuestos(savedOrden.getCodigo(), ordenTrabajoDTO.getRepuestos());
+            }
+            
+            if (ordenTrabajoDTO.getMecanicos() != null && !ordenTrabajoDTO.getMecanicos().isEmpty()) {
+                ordenTrabajoService.saveOrdenMecanicos(savedOrden.getCodigo(), ordenTrabajoDTO.getMecanicos());
+            }
+            
+            // Recargar la orden con todas las relaciones
+            OrdenTrabajo finalOrden = ordenTrabajoService.findById(savedOrden.getCodigo()).orElse(savedOrden);
+            return ResponseEntity.ok(convertToDTO(finalOrden));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OrdenTrabajoDTO> updateOrdenTrabajo(@PathVariable Integer id, @RequestBody OrdenTrabajoDTO ordenTrabajoDTO) {
-        if (!ordenTrabajoService.findById(id).isPresent()) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<OrdenTrabajoDTO> updateOrdenTrabajo(@PathVariable String id, @RequestBody OrdenTrabajoDTO ordenTrabajoDTO) {
+        try {
+            Integer codigo = Integer.parseInt(id);
+            Optional<OrdenTrabajo> ordenExistente = ordenTrabajoService.findById(codigo);
+            if (!ordenExistente.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            OrdenTrabajo orden = convertToEntity(ordenTrabajoDTO);
+            orden.setCodigo(codigo);
+            orden.setFechaModificacion(LocalDateTime.now());
+            orden.setFechaCreacion(ordenExistente.get().getFechaCreacion());
+            orden.setUsuarioCreacion(ordenExistente.get().getUsuarioCreacion());
+            orden.setUsuarioModificacion("admin");
+            
+            // Actualizar la orden
+            OrdenTrabajo updatedOrden = ordenTrabajoService.save(orden);
+            
+            // Eliminar relaciones antiguas
+            ordenTrabajoService.deleteOrdenRelations(codigo);
+            
+            // Procesar nuevas relaciones si existen
+            if (ordenTrabajoDTO.getServicios() != null && !ordenTrabajoDTO.getServicios().isEmpty()) {
+                ordenTrabajoService.saveOrdenServicios(codigo, ordenTrabajoDTO.getServicios());
+            }
+            
+            if (ordenTrabajoDTO.getRepuestos() != null && !ordenTrabajoDTO.getRepuestos().isEmpty()) {
+                ordenTrabajoService.saveOrdenRepuestos(codigo, ordenTrabajoDTO.getRepuestos());
+            }
+            
+            if (ordenTrabajoDTO.getMecanicos() != null && !ordenTrabajoDTO.getMecanicos().isEmpty()) {
+                ordenTrabajoService.saveOrdenMecanicos(codigo, ordenTrabajoDTO.getMecanicos());
+            }
+            
+            // Recargar la orden con todas las relaciones
+            OrdenTrabajo finalOrden = ordenTrabajoService.findById(codigo).orElse(updatedOrden);
+            return ResponseEntity.ok(convertToDTO(finalOrden));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
         }
-        OrdenTrabajo orden = convertToEntity(ordenTrabajoDTO);
-        orden.setCodigo(id);
-        orden.setFechaModificacion(LocalDateTime.now());
-        OrdenTrabajo updatedOrden = ordenTrabajoService.save(orden);
-        return ResponseEntity.ok(convertToDTO(updatedOrden));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrdenTrabajo(@PathVariable Integer id) {
-        if (!ordenTrabajoService.findById(id).isPresent()) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<Void> deleteOrdenTrabajo(@PathVariable String id) {
+        try {
+            Integer codigo = Integer.parseInt(id);
+            if (!ordenTrabajoService.findById(codigo).isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            ordenTrabajoService.deleteById(codigo);
+            return ResponseEntity.noContent().build();
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
         }
-        ordenTrabajoService.deleteById(id);
-        return ResponseEntity.noContent().build();
     }
 
     private OrdenTrabajoDTO convertToDTO(OrdenTrabajo orden) {

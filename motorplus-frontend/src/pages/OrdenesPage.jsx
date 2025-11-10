@@ -153,7 +153,7 @@ const OrdenesPage = () => {
         placa: formData.placaVehiculo,
         diagnosticoInicial: formData.descripcion,
         estado: formData.estado,
-        fechaIngreso: new Date().toISOString().split('T')[0], // Current date
+        fechaIngreso: new Date().toISOString().split('T')[0], // Current date in yyyy-MM-dd format
         servicios: serviciosData,
         repuestos: repuestosData,
         mecanicos: mecanicosData
@@ -222,19 +222,59 @@ const OrdenesPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (orden) => {
     if (!confirm('¿Estás seguro de eliminar esta orden de trabajo?')) return;
 
     try {
-      const response = await fetch(`http://localhost:8080/api/ordenes-trabajo/${id}`, {
+      console.log('Orden recibida para eliminar:', orden);
+      
+      // Obtener el código de la orden
+      const codigo = orden?.codigo;
+      
+      console.log('Código extraído:', codigo, 'Tipo:', typeof codigo);
+      
+      // Validar que el código exista
+      if (codigo === null || codigo === undefined || codigo === '') {
+        console.error('Código no encontrado en orden:', orden);
+        throw new Error('No se pudo obtener el código de la orden. Por favor, recarga la página e intenta nuevamente.');
+      }
+      
+      // Convertir a número si es necesario
+      let codigoNumerico;
+      if (typeof codigo === 'number') {
+        codigoNumerico = codigo;
+      } else if (typeof codigo === 'string') {
+        const parsed = parseInt(codigo, 10);
+        if (isNaN(parsed)) {
+          throw new Error(`Código de orden inválido: "${codigo}". El código debe ser un número.`);
+        }
+        codigoNumerico = parsed;
+      } else {
+        throw new Error(`Tipo de código inválido: ${typeof codigo}. Valor: ${codigo}`);
+      }
+      
+      console.log('Eliminando orden con código numérico:', codigoNumerico);
+      
+      const response = await fetch(`http://localhost:8080/api/ordenes-trabajo/${codigoNumerico}`, {
         method: 'DELETE'
       });
 
-      if (!response.ok) throw new Error('Error al eliminar orden');
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { mensaje: errorText || `Error ${response.status}` };
+        }
+        throw new Error(errorData.mensaje || `Error ${response.status}: No se pudo eliminar la orden`);
+      }
 
       await fetchOrdenes();
     } catch (err) {
       setError(err.message);
+      console.error('Error eliminando orden:', err);
+      alert('Error al eliminar la orden:\n' + err.message);
     }
   };
 
@@ -243,10 +283,18 @@ const OrdenesPage = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:8080/api/reports/15/orden-trabajo/${ordenCodigo}`);
+      // Validar que el código sea un número válido
+      if (!ordenCodigo || (typeof ordenCodigo !== 'number' && isNaN(parseInt(ordenCodigo)))) {
+        throw new Error('Código de orden inválido. El código debe ser un número.');
+      }
+      
+      const codigoNumerico = typeof ordenCodigo === 'number' ? ordenCodigo : parseInt(ordenCodigo);
+      
+      const response = await fetch(`http://localhost:8080/api/reports/15/orden-trabajo/${codigoNumerico}`);
       
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: No se pudo cargar el detalle de la orden`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.mensaje || `Error ${response.status}: No se pudo cargar el detalle de la orden`);
       }
       
       const detalle = await response.json();
@@ -261,7 +309,7 @@ const OrdenesPage = () => {
     } catch (err) {
       setError('Error al cargar el detalle: ' + err.message);
       console.error('Error cargando detalle de orden:', err);
-      alert('Error al cargar el detalle de la orden. Por favor, verifica que:\n- El backend esté corriendo\n- La orden tenga datos completos\n- La conexión a la base de datos esté activa');
+      alert('Error al cargar el detalle de la orden:\n' + err.message);
     } finally {
       setLoading(false);
     }
@@ -476,30 +524,27 @@ const OrdenesPage = () => {
         size="xl"
       >
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Código *
-              </label>
-              <input
-                type="text"
-                value={formData.codigo}
-                onChange={(e) => setFormData({...formData, codigo: e.target.value})}
-                required
-                disabled={!!editingOrden}
-                pattern="[A-Za-z0-9\-]+"
-                title="Solo letras, números y guiones permitidos"
-                placeholder="ORD001"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  backgroundColor: editingOrden ? '#f9fafb' : 'white',
-                }}
-              />
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: editingOrden ? '1fr 1fr 1fr' : '1fr 1fr', gap: '16px' }}>
+            {editingOrden && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Código
+                </label>
+                <input
+                  type="text"
+                  value={formData.codigo}
+                  disabled
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                    backgroundColor: '#f9fafb',
+                  }}
+                />
+              </div>
+            )}
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>

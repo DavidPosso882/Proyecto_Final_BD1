@@ -182,7 +182,7 @@ const DataTable = ({ data, columns, title, onEdit, onDelete, onView, onDownloadP
                         ✏️
                       </button>
                       <button
-                        onClick={() => onDelete && onDelete(item.idCliente || item.placa || item.id || item.idOrdenTrabajo || item.idFactura || item.idServicio || item.idProveedor || item.idMecanico || item.idVehiculo || item.codigo)}
+                        onClick={() => onDelete && onDelete(item)}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: 'transparent',

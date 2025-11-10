@@ -14,6 +14,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -419,7 +420,16 @@ public class ReportController {
 
     // Reporte 15: Detalle Completo de Orden de Trabajo
     @GetMapping("/15/orden-trabajo/{codigoOrden}")
-    public Map<String, Object> getOrdenTrabajoDetalleReport(@PathVariable Integer codigoOrden) {
+    public Map<String, Object> getOrdenTrabajoDetalleReport(@PathVariable String codigoOrden) {
+        Integer codigo;
+        try {
+            codigo = Integer.parseInt(codigoOrden);
+        } catch (NumberFormatException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", true);
+            error.put("mensaje", "Código de orden inválido: " + codigoOrden);
+            return error;
+        }
         try {
             // Información general de la orden
             String sqlOrden = """
@@ -445,10 +455,10 @@ public class ReportController {
                 WHERE ot.codigo = ?
                 """;
             
-            List<Map<String, Object>> ordenList = jdbcTemplate.queryForList(sqlOrden, codigoOrden);
+            List<Map<String, Object>> ordenList = jdbcTemplate.queryForList(sqlOrden, codigo);
             
             if (ordenList.isEmpty()) {
-                throw new RuntimeException("Orden de trabajo no encontrada con código: " + codigoOrden);
+                throw new RuntimeException("Orden de trabajo no encontrada con código: " + codigo);
             }
             
             Map<String, Object> ordenInfo = ordenList.get(0);
@@ -469,7 +479,7 @@ public class ReportController {
                 ORDER BY s.nombre
                 """;
             
-            List<Map<String, Object>> servicios = jdbcTemplate.queryForList(sqlServicios, codigoOrden);
+            List<Map<String, Object>> servicios = jdbcTemplate.queryForList(sqlServicios, codigo);
             
             // Repuestos de la orden
             String sqlRepuestos = """
@@ -486,7 +496,7 @@ public class ReportController {
                 ORDER BY r.nombre
                 """;
             
-            List<Map<String, Object>> repuestos = jdbcTemplate.queryForList(sqlRepuestos, codigoOrden);
+            List<Map<String, Object>> repuestos = jdbcTemplate.queryForList(sqlRepuestos, codigo);
             
             // Mecánicos de la orden
             String sqlMecanicos = """
@@ -504,7 +514,7 @@ public class ReportController {
                 ORDER BY m.nombre
                 """;
             
-            List<Map<String, Object>> mecanicos = jdbcTemplate.queryForList(sqlMecanicos, codigoOrden);
+            List<Map<String, Object>> mecanicos = jdbcTemplate.queryForList(sqlMecanicos, codigo);
             
             // Factura asociada
             String sqlFactura = """
@@ -519,7 +529,7 @@ public class ReportController {
                 WHERE f.orden_codigo = ?
                 """;
             
-            List<Map<String, Object>> facturaList = jdbcTemplate.queryForList(sqlFactura, codigoOrden);
+            List<Map<String, Object>> facturaList = jdbcTemplate.queryForList(sqlFactura, codigo);
             Map<String, Object> factura = facturaList.isEmpty() ? null : facturaList.get(0);
             
             // Construir respuesta completa
@@ -532,14 +542,14 @@ public class ReportController {
             
             return resultado;
         } catch (Exception e) {
-            System.err.println("Error al obtener detalle de orden " + codigoOrden + ": " + e.getMessage());
+            System.err.println("Error al obtener detalle de orden " + codigo + ": " + e.getMessage());
             e.printStackTrace();
             
             // Retornar respuesta de error
             Map<String, Object> errorResponse = new java.util.HashMap<>();
             errorResponse.put("error", true);
             errorResponse.put("mensaje", "Error al cargar el detalle de la orden: " + e.getMessage());
-            errorResponse.put("codigoOrden", codigoOrden);
+            errorResponse.put("codigoOrden", codigo);
             return errorResponse;
         }
     }
@@ -745,7 +755,7 @@ public class ReportController {
 
     // Exportar Orden de Trabajo a PDF
     @GetMapping("/export/orden-trabajo/{codigoOrden}")
-    public ResponseEntity<byte[]> exportOrdenTrabajoPDF(@PathVariable Integer codigoOrden) {
+    public ResponseEntity<byte[]> exportOrdenTrabajoPDF(@PathVariable String codigoOrden) {
         try {
             Map<String, Object> ordenDetalle = getOrdenTrabajoDetalleReport(codigoOrden);
             
