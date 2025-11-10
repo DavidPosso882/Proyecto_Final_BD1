@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataTable = ({ data, columns, title, onEdit, onDelete }) => {
+const DataTable = ({ data, columns, title, onEdit, onDelete, onView }) => {
   const tableBg = 'white';
   const borderColor = 'gray.200';
   const hoverBg = 'gray.50';
@@ -107,6 +107,31 @@ const DataTable = ({ data, columns, title, onEdit, onDelete }) => {
                     }}
                   >
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      {onView && (
+                        <button
+                          onClick={() => onView(item)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: 'transparent',
+                            color: '#16a34a',
+                            border: '1px solid #16a34a',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#16a34a';
+                            e.target.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.color = '#16a34a';
+                          }}
+                        >
+                          👁️
+                        </button>
+                      )}
                       <button
                         onClick={() => onEdit && onEdit(item)}
                         style={{
@@ -131,7 +156,7 @@ const DataTable = ({ data, columns, title, onEdit, onDelete }) => {
                         ✏️
                       </button>
                       <button
-                        onClick={() => onDelete && onDelete(item.idCliente || item.placa || item.id || item.idOrdenTrabajo || item.idFactura || item.idServicio || item.idProveedor || item.idMecanico || item.idVehiculo)}
+                        onClick={() => onDelete && onDelete(item.idCliente || item.placa || item.id || item.idOrdenTrabajo || item.idFactura || item.idServicio || item.idProveedor || item.idMecanico || item.idVehiculo || item.codigo)}
                         style={{
                           padding: '6px 12px',
                           backgroundColor: 'transparent',

@@ -417,6 +417,133 @@ public class ReportController {
         );
     }
 
+    // Reporte 15: Detalle Completo de Orden de Trabajo
+    @GetMapping("/15/orden-trabajo/{codigoOrden}")
+    public Map<String, Object> getOrdenTrabajoDetalleReport(@PathVariable Integer codigoOrden) {
+        try {
+            // Información general de la orden
+            String sqlOrden = """
+                SELECT
+                    ot.codigo,
+                    ot.fecha_ingreso,
+                    ot.diagnostico_inicial,
+                    ot.estado,
+                    ot.placa,
+                    ot.fecha_creacion,
+                    COALESCE(v.tipo, 'N/A') AS vehiculo_tipo,
+                    COALESCE(v.marca, 'N/A') AS vehiculo_marca,
+                    COALESCE(v.modelo, 'N/A') AS vehiculo_modelo,
+                    COALESCE(v.anio, 0) AS vehiculo_anio,
+                    COALESCE(CONCAT(c.nombre, ' ', COALESCE(c.apellido, '')), 'N/A') AS cliente_nombre,
+                    c.telefono AS cliente_telefono,
+                    c.email AS cliente_email,
+                    c.tipo AS cliente_tipo,
+                    c.id_cliente AS cliente_documento
+                FROM OrdenTrabajo ot
+                LEFT JOIN Vehiculo v ON ot.placa = v.placa
+                LEFT JOIN Cliente c ON v.documento_cliente = c.id_cliente
+                WHERE ot.codigo = ?
+                """;
+            
+            List<Map<String, Object>> ordenList = jdbcTemplate.queryForList(sqlOrden, codigoOrden);
+            
+            if (ordenList.isEmpty()) {
+                throw new RuntimeException("Orden de trabajo no encontrada con código: " + codigoOrden);
+            }
+            
+            Map<String, Object> ordenInfo = ordenList.get(0);
+            
+            // Servicios de la orden
+            String sqlServicios = """
+                SELECT
+                    s.codigo,
+                    s.nombre,
+                    s.descripcion,
+                    s.categoria,
+                    os.cantidad,
+                    os.precio_aplicado,
+                    (os.cantidad * os.precio_aplicado) AS subtotal
+                FROM OrdenServicio os
+                INNER JOIN Servicio s ON os.servicio_codigo = s.codigo
+                WHERE os.orden_codigo = ?
+                ORDER BY s.nombre
+                """;
+            
+            List<Map<String, Object>> servicios = jdbcTemplate.queryForList(sqlServicios, codigoOrden);
+            
+            // Repuestos de la orden
+            String sqlRepuestos = """
+                SELECT
+                    r.codigo,
+                    r.nombre,
+                    r.descripcion,
+                    orep.cantidad_usada,
+                    orep.precio_aplicado,
+                    (orep.cantidad_usada * orep.precio_aplicado) AS subtotal
+                FROM OrdenRepuesto orep
+                INNER JOIN Repuesto r ON orep.repuesto_codigo = r.codigo
+                WHERE orep.orden_codigo = ?
+                ORDER BY r.nombre
+                """;
+            
+            List<Map<String, Object>> repuestos = jdbcTemplate.queryForList(sqlRepuestos, codigoOrden);
+            
+            // Mecánicos de la orden
+            String sqlMecanicos = """
+                SELECT
+                    m.id_mecanico,
+                    m.nombre,
+                    m.telefono,
+                    om.horas_trabajadas,
+                    om.rol,
+                    0.00 AS tarifa_hora,
+                    0.00 AS costo_mano_obra
+                FROM OrdenMecanico om
+                INNER JOIN Mecanico m ON om.mecanico_id = m.id_mecanico
+                WHERE om.orden_codigo = ?
+                ORDER BY m.nombre
+                """;
+            
+            List<Map<String, Object>> mecanicos = jdbcTemplate.queryForList(sqlMecanicos, codigoOrden);
+            
+            // Factura asociada
+            String sqlFactura = """
+                SELECT
+                    f.id_factura,
+                    f.fecha_emision,
+                    f.subtotal,
+                    f.total,
+                    f.estado_pago,
+                    f.fecha_pago
+                FROM Factura f
+                WHERE f.orden_codigo = ?
+                """;
+            
+            List<Map<String, Object>> facturaList = jdbcTemplate.queryForList(sqlFactura, codigoOrden);
+            Map<String, Object> factura = facturaList.isEmpty() ? null : facturaList.get(0);
+            
+            // Construir respuesta completa
+            Map<String, Object> resultado = new java.util.HashMap<>();
+            resultado.put("orden", ordenInfo);
+            resultado.put("servicios", servicios);
+            resultado.put("repuestos", repuestos);
+            resultado.put("mecanicos", mecanicos);
+            resultado.put("factura", factura);
+            
+            return resultado;
+        } catch (Exception e) {
+            System.err.println("Error al obtener detalle de orden " + codigoOrden + ": " + e.getMessage());
+            e.printStackTrace();
+            
+            // Retornar respuesta de error
+            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", true);
+            errorResponse.put("mensaje", "Error al cargar el detalle de la orden: " + e.getMessage());
+            errorResponse.put("codigoOrden", codigoOrden);
+            return errorResponse;
+        }
+    }
+
     // Reporte 14: Historial Completo de Cliente (por documento)
     @GetMapping("/14/historial-cliente/{documentoCliente}")
     public List<Map<String, Object>> getHistorialClienteReport(@PathVariable String documentoCliente) {
@@ -437,7 +564,27 @@ public class ReportController {
                 GROUP_CONCAT(DISTINCT s.nombre SEPARATOR ', ') AS servicios,
                 GROUP_CONCAT(DISTINCT r.nombre SEPARATOR ', ') AS repuestos,
                 GROUP_CONCAT(DISTINCT m.nombre SEPARATOR ', ') AS mecanicos,
-                COALESCE(f.total, 0) AS costo_total,
+                COALESCE(f.total, 
+                    (SELECT 
+                        COALESCE(SUM(os2.cantidad * os2.precio_aplicado), 0) +
+                        COALESCE(SUM(orep2.cantidad_usada * orep2.precio_aplicado), 0)
+                     FROM OrdenTrabajo ot2
+                     LEFT JOIN OrdenServicio os2 ON ot2.codigo = os2.orden_codigo
+                     LEFT JOIN OrdenRepuesto orep2 ON ot2.codigo = orep2.orden_codigo
+                     WHERE ot2.codigo = ot.codigo
+                     GROUP BY ot2.codigo
+                    ), 0
+                ) AS costo_total,
+                (SELECT 
+                    COALESCE(SUM(os3.cantidad * os3.precio_aplicado), 0)
+                 FROM OrdenServicio os3
+                 WHERE os3.orden_codigo = ot.codigo
+                ) AS total_servicios,
+                (SELECT 
+                    COALESCE(SUM(orep3.cantidad_usada * orep3.precio_aplicado), 0)
+                 FROM OrdenRepuesto orep3
+                 WHERE orep3.orden_codigo = ot.codigo
+                ) AS total_repuestos,
                 f.estado_pago,
                 f.fecha_emision AS fecha_factura
             FROM Cliente c
@@ -473,6 +620,8 @@ public class ReportController {
                 result.put("repuestos", rs.getString("repuestos"));
                 result.put("mecanicos", rs.getString("mecanicos"));
                 result.put("costo_total", rs.getBigDecimal("costo_total"));
+                result.put("total_servicios", rs.getBigDecimal("total_servicios"));
+                result.put("total_repuestos", rs.getBigDecimal("total_repuestos"));
                 result.put("estado_pago", rs.getString("estado_pago"));
                 result.put("fecha_factura", rs.getDate("fecha_factura"));
             } catch (Exception e) {
@@ -490,11 +639,243 @@ public class ReportController {
                 result.put("repuestos", "");
                 result.put("mecanicos", "");
                 result.put("costo_total", 0);
+                result.put("total_servicios", 0);
+                result.put("total_repuestos", 0);
                 result.put("estado_pago", "");
                 result.put("fecha_factura", null);
             }
             return result;
         }, documentoCliente);
+    }
+
+    // Exportar Historial de Cliente a PDF
+    @GetMapping("/export-historial/{documentoCliente}")
+    public ResponseEntity<byte[]> exportHistorialClientePDF(@PathVariable String documentoCliente) {
+        try {
+            List<Map<String, Object>> historial = getHistorialClienteReport(documentoCliente);
+            
+            if (historial.isEmpty()) {
+                throw new RuntimeException("No se encontró historial para el cliente: " + documentoCliente);
+            }
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+
+            // Encabezado
+            document.add(new Paragraph("MOTORPLUS - Sistema de Gestión de Taller")
+                .setFontSize(18)
+                .setBold());
+            document.add(new Paragraph("HISTORIAL COMPLETO DE CLIENTE")
+                .setFontSize(14)
+                .setBold());
+            document.add(new Paragraph("Fecha de generación: " + java.time.LocalDate.now()));
+            document.add(new Paragraph("\n"));
+
+            // Información del cliente (tomada del primer registro)
+            Map<String, Object> primerRegistro = historial.get(0);
+            document.add(new Paragraph("INFORMACIÓN DEL CLIENTE").setBold().setFontSize(12));
+            document.add(new Paragraph("Cliente: " + primerRegistro.get("cliente")));
+            document.add(new Paragraph("Documento: " + documentoCliente));
+            document.add(new Paragraph("Teléfono: " + (primerRegistro.get("telefono") != null ? primerRegistro.get("telefono") : "N/A")));
+            document.add(new Paragraph("Email: " + (primerRegistro.get("email") != null ? primerRegistro.get("email") : "N/A")));
+            document.add(new Paragraph("\n"));
+
+            // Tabla de historial
+            document.add(new Paragraph("HISTORIAL DE ÓRDENES").setBold().setFontSize(12));
+            Table historialTable = new Table(8);
+            historialTable.addHeaderCell("Orden");
+            historialTable.addHeaderCell("Fecha");
+            historialTable.addHeaderCell("Vehículo");
+            historialTable.addHeaderCell("Estado");
+            historialTable.addHeaderCell("Servicios");
+            historialTable.addHeaderCell("Total Servicios");
+            historialTable.addHeaderCell("Total Repuestos");
+            historialTable.addHeaderCell("Total");
+            
+            java.math.BigDecimal totalGeneral = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal totalServiciosGeneral = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal totalRepuestosGeneral = java.math.BigDecimal.ZERO;
+            
+            for (Map<String, Object> registro : historial) {
+                historialTable.addCell(registro.get("codigo_orden").toString());
+                historialTable.addCell(registro.get("fecha_ingreso").toString());
+                historialTable.addCell(registro.get("vehiculo") != null ? registro.get("vehiculo").toString() : "N/A");
+                historialTable.addCell(registro.get("estado").toString());
+                historialTable.addCell(registro.get("servicios") != null ? registro.get("servicios").toString() : "N/A");
+                
+                java.math.BigDecimal totalServicios = (java.math.BigDecimal) registro.get("total_servicios");
+                java.math.BigDecimal totalRepuestos = (java.math.BigDecimal) registro.get("total_repuestos");
+                java.math.BigDecimal costoTotal = (java.math.BigDecimal) registro.get("costo_total");
+                
+                historialTable.addCell("$" + totalServicios.toString());
+                historialTable.addCell("$" + totalRepuestos.toString());
+                historialTable.addCell("$" + costoTotal.toString());
+                
+                totalServiciosGeneral = totalServiciosGeneral.add(totalServicios);
+                totalRepuestosGeneral = totalRepuestosGeneral.add(totalRepuestos);
+                totalGeneral = totalGeneral.add(costoTotal);
+            }
+            document.add(historialTable);
+            document.add(new Paragraph("\n"));
+            
+            // Resumen
+            document.add(new Paragraph("RESUMEN").setBold().setFontSize(12));
+            document.add(new Paragraph("Total de órdenes: " + historial.size()));
+            document.add(new Paragraph("Total servicios: $" + totalServiciosGeneral.toString()));
+            document.add(new Paragraph("Total repuestos: $" + totalRepuestosGeneral.toString()));
+            document.add(new Paragraph("TOTAL GENERAL: $" + totalGeneral.toString()).setBold());
+
+            document.close();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "historial_cliente_" + documentoCliente + ".pdf");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(baos.toByteArray());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Exportar Orden de Trabajo a PDF
+    @GetMapping("/export/orden-trabajo/{codigoOrden}")
+    public ResponseEntity<byte[]> exportOrdenTrabajoPDF(@PathVariable Integer codigoOrden) {
+        try {
+            Map<String, Object> ordenDetalle = getOrdenTrabajoDetalleReport(codigoOrden);
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+
+            // Encabezado
+            document.add(new Paragraph("MOTORPLUS - Sistema de Gestión de Taller")
+                .setFontSize(18)
+                .setBold());
+            document.add(new Paragraph("ORDEN DE TRABAJO - Detalle Completo")
+                .setFontSize(14)
+                .setBold());
+            document.add(new Paragraph("Fecha de generación: " + java.time.LocalDate.now()));
+            document.add(new Paragraph("\n"));
+
+            // Información de la orden
+            @SuppressWarnings("unchecked")
+            Map<String, Object> orden = (Map<String, Object>) ordenDetalle.get("orden");
+            document.add(new Paragraph("INFORMACIÓN DE LA ORDEN").setBold().setFontSize(12));
+            document.add(new Paragraph("Código de Orden: " + orden.get("codigo")));
+            document.add(new Paragraph("Fecha de Ingreso: " + orden.get("fecha_ingreso")));
+            document.add(new Paragraph("Estado: " + orden.get("estado")));
+            document.add(new Paragraph("Diagnóstico Inicial: " + (orden.get("diagnostico_inicial") != null ? orden.get("diagnostico_inicial") : "N/A")));
+            document.add(new Paragraph("\n"));
+
+            // Información del cliente
+            document.add(new Paragraph("INFORMACIÓN DEL CLIENTE").setBold().setFontSize(12));
+            document.add(new Paragraph("Nombre: " + orden.get("cliente_nombre")));
+            document.add(new Paragraph("Documento: " + orden.get("cliente_documento")));
+            document.add(new Paragraph("Teléfono: " + (orden.get("cliente_telefono") != null ? orden.get("cliente_telefono") : "N/A")));
+            document.add(new Paragraph("Email: " + (orden.get("cliente_email") != null ? orden.get("cliente_email") : "N/A")));
+            document.add(new Paragraph("\n"));
+
+            // Información del vehículo
+            document.add(new Paragraph("INFORMACIÓN DEL VEHÍCULO").setBold().setFontSize(12));
+            document.add(new Paragraph("Placa: " + orden.get("placa")));
+            document.add(new Paragraph("Vehículo: " + orden.get("vehiculo_marca") + " " + orden.get("vehiculo_modelo") + " (" + orden.get("vehiculo_anio") + ")"));
+            document.add(new Paragraph("Tipo: " + orden.get("vehiculo_tipo")));
+            document.add(new Paragraph("\n"));
+
+            // Servicios
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> servicios = (List<Map<String, Object>>) ordenDetalle.get("servicios");
+            if (servicios != null && !servicios.isEmpty()) {
+                document.add(new Paragraph("SERVICIOS REALIZADOS").setBold().setFontSize(12));
+                Table serviciosTable = new Table(4);
+                serviciosTable.addHeaderCell("Servicio");
+                serviciosTable.addHeaderCell("Cantidad");
+                serviciosTable.addHeaderCell("Precio Unit.");
+                serviciosTable.addHeaderCell("Subtotal");
+                
+                for (Map<String, Object> servicio : servicios) {
+                    serviciosTable.addCell(servicio.get("nombre").toString());
+                    serviciosTable.addCell(servicio.get("cantidad").toString());
+                    serviciosTable.addCell("$" + servicio.get("precio_aplicado").toString());
+                    serviciosTable.addCell("$" + servicio.get("subtotal").toString());
+                }
+                document.add(serviciosTable);
+                document.add(new Paragraph("\n"));
+            }
+
+            // Repuestos
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> repuestos = (List<Map<String, Object>>) ordenDetalle.get("repuestos");
+            if (repuestos != null && !repuestos.isEmpty()) {
+                document.add(new Paragraph("REPUESTOS UTILIZADOS").setBold().setFontSize(12));
+                Table repuestosTable = new Table(4);
+                repuestosTable.addHeaderCell("Repuesto");
+                repuestosTable.addHeaderCell("Cantidad");
+                repuestosTable.addHeaderCell("Precio Unit.");
+                repuestosTable.addHeaderCell("Subtotal");
+                
+                for (Map<String, Object> repuesto : repuestos) {
+                    repuestosTable.addCell(repuesto.get("nombre").toString());
+                    repuestosTable.addCell(repuesto.get("cantidad_usada").toString());
+                    repuestosTable.addCell("$" + repuesto.get("precio_aplicado").toString());
+                    repuestosTable.addCell("$" + repuesto.get("subtotal").toString());
+                }
+                document.add(repuestosTable);
+                document.add(new Paragraph("\n"));
+            }
+
+            // Mecánicos
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> mecanicos = (List<Map<String, Object>>) ordenDetalle.get("mecanicos");
+            if (mecanicos != null && !mecanicos.isEmpty()) {
+                document.add(new Paragraph("MECÁNICOS ASIGNADOS").setBold().setFontSize(12));
+                Table mecanicosTable = new Table(3);
+                mecanicosTable.addHeaderCell("Mecánico");
+                mecanicosTable.addHeaderCell("Rol");
+                mecanicosTable.addHeaderCell("Horas Trabajadas");
+                
+                for (Map<String, Object> mecanico : mecanicos) {
+                    mecanicosTable.addCell(mecanico.get("nombre").toString());
+                    mecanicosTable.addCell(mecanico.get("rol") != null ? mecanico.get("rol").toString() : "N/A");
+                    mecanicosTable.addCell(mecanico.get("horas_trabajadas").toString());
+                }
+                document.add(mecanicosTable);
+                document.add(new Paragraph("\n"));
+            }
+
+            // Factura
+            @SuppressWarnings("unchecked")
+            Map<String, Object> factura = (Map<String, Object>) ordenDetalle.get("factura");
+            if (factura != null) {
+                document.add(new Paragraph("INFORMACIÓN DE FACTURA").setBold().setFontSize(12));
+                document.add(new Paragraph("ID Factura: " + factura.get("id_factura")));
+                document.add(new Paragraph("Fecha Emisión: " + factura.get("fecha_emision")));
+                document.add(new Paragraph("Subtotal: $" + factura.get("subtotal")));
+                document.add(new Paragraph("Total: $" + factura.get("total")));
+                document.add(new Paragraph("Estado de Pago: " + factura.get("estado_pago")));
+            }
+
+            document.close();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "orden_trabajo_" + codigoOrden + ".pdf");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(baos.toByteArray());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // Exportar Reporte a PDF

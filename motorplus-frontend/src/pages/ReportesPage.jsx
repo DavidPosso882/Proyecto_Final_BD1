@@ -7,6 +7,7 @@ const ReportesPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentReport, setCurrentReport] = useState('');
+  const [currentDocumentoCliente, setCurrentDocumentoCliente] = useState(null);
 
   const reports = [
     { id: 1, name: 'Lista de Clientes', endpoint: 'clientes', columns: [
@@ -76,7 +77,10 @@ const ReportesPage = () => {
       { key: 'codigo_orden', label: 'Orden' },
       { key: 'fecha_ingreso', label: 'Fecha' },
       { key: 'estado', label: 'Estado' },
-      { key: 'costo_total', label: 'Total' }
+      { key: 'servicios', label: 'Servicios' },
+      { key: 'total_servicios', label: 'Total Servicios' },
+      { key: 'total_repuestos', label: 'Total Repuestos' },
+      { key: 'costo_total', label: 'Total General' }
     ], requiresInput: true, inputLabel: 'Documento del Cliente' }
   ];
 
@@ -85,6 +89,7 @@ const ReportesPage = () => {
       setLoading(true);
       setError(null);
       setCurrentReport(reports.find(r => r.id === reportId)?.name || '');
+      setCurrentDocumentoCliente(documentoCliente); // Guardar el documento del cliente
 
       let data;
       switch (reportId) {
@@ -129,32 +134,42 @@ const ReportesPage = () => {
             throw new Error('Se requiere el documento del cliente');
           }
           data = await reporteService.getHistorialClienteReport(documentoCliente);
+          console.log('Historial de cliente recibido:', data);
+          console.log('Cantidad de registros:', data ? data.length : 0);
           break;
         default:
           data = [];
       }
 
+      console.log('Datos finales a mostrar:', data);
+      console.log('Cantidad de registros:', Array.isArray(data) ? data.length : 'No es array');
+      
       setReportData(data);
     } catch (err) {
       setError('Error al cargar el reporte: ' + err.message);
-      console.error(err);
+      console.error('Error completo:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const exportToPDF = async (reportId) => {
+  const exportToPDF = async (reportId, documentoCliente = null) => {
     try {
-      const blob = await reporteService.exportReportToPDF(reportId);
+      // Usar el documento pasado como parámetro o el guardado en el estado
+      const docCliente = documentoCliente || currentDocumentoCliente;
+      
+      const blob = await reporteService.exportReportToPDF(reportId, docCliente);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `reporte_${reportId}.pdf`;
+      link.download = reportId === 14 && docCliente 
+        ? `historial_cliente_${docCliente}.pdf`
+        : `reporte_${reportId}.pdf`;
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setError('Error al exportar el PDF');
-      console.error(err);
+      setError('Error al exportar el PDF: ' + err.message);
+      console.error('Error exportando PDF:', err);
     }
   };
 
@@ -313,7 +328,18 @@ const ReportesPage = () => {
                     transition: 'all 0.2s',
                     width: '100%',
                   }}
-                  onClick={() => exportToPDF(report.id)}
+                  onClick={() => {
+                    if (report.requiresInput) {
+                      const inputValue = document.getElementById(`input-${report.id}`).value;
+                      if (!inputValue.trim()) {
+                        alert('Por favor ingrese el documento del cliente primero');
+                        return;
+                      }
+                      exportToPDF(report.id, inputValue);
+                    } else {
+                      exportToPDF(report.id);
+                    }
+                  }}
                   disabled={loading}
                   onMouseEnter={(e) => {
                     if (!loading) {
@@ -376,12 +402,31 @@ const ReportesPage = () => {
         </div>
       )}
 
-      {reportData.length > 0 && currentReportConfig && (
-        <DataTable
-          data={reportData}
-          columns={currentReportConfig.columns}
-          title={currentReport}
-        />
+      {currentReport && !loading && !error && (
+        <>
+          {reportData.length > 0 ? (
+            currentReportConfig && (
+              <DataTable
+                data={reportData}
+                columns={currentReportConfig.columns}
+                title={currentReport}
+              />
+            )
+          ) : (
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: '12px',
+              padding: '16px',
+              margin: '16px 0'
+            }}>
+              <div>
+                <h4 style={{ color: '#92400e', marginBottom: '8px' }}>No hay registros</h4>
+                <p style={{ color: '#78350f' }}>No se encontraron datos para este reporte con los parámetros proporcionados.</p>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

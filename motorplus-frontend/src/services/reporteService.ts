@@ -58,9 +58,39 @@ export const reporteService = {
     return response.data;
   },
 
+  // Reportes con subconsultas
+  async getClientesVIPReport(): Promise<ReportData[]> {
+    const response = await apiClient.get('/reports/11/clientes-vip');
+    return response.data;
+  },
+
+  async getVehiculosMasServiciosReport(): Promise<ReportData[]> {
+    const response = await apiClient.get('/reports/12/vehiculos-mas-servicios');
+    return response.data;
+  },
+
+  async getFacturasSuperioresPromedioReport(): Promise<ReportData[]> {
+    const response = await apiClient.get('/reports/13/facturas-superiores-promedio');
+    return response.data;
+  },
+
+  async getHistorialClienteReport(documentoCliente: string): Promise<ReportData[]> {
+    const response = await apiClient.get(`/reports/14/historial-cliente/${documentoCliente}`);
+    return response.data;
+  },
+
   // Exportación a PDF
-  async exportReportToPDF(reportId: number): Promise<Blob> {
-    const response = await apiClient.get(`/reports/export/${reportId}`, {
+  async exportReportToPDF(reportId: number, documentoCliente?: string): Promise<Blob> {
+    let url = `/reports/export/${reportId}`;
+    if (reportId === 14 && documentoCliente) {
+      url = `/reports/export-historial/${documentoCliente}`;
+      console.log('Exportando historial de cliente. URL:', url);
+    } else if (reportId === 14 && !documentoCliente) {
+      console.error('Error: Se intentó exportar historial sin documento de cliente');
+      throw new Error('Se requiere el documento del cliente para exportar el historial');
+    }
+    console.log('URL de exportación:', url);
+    const response = await apiClient.get(url, {
       responseType: 'blob',
     });
     return response.data;
