@@ -21,6 +21,7 @@ const OrdenesPage = () => {
     estado: 'PENDIENTE',
     idCliente: '',
     placaVehiculo: '',
+    mecanicoResponsableId: '',
     mecanicos: [],
     servicios: [], // Array de { servicioCodigo, cantidad, precioAplicado }
     repuestos: []
@@ -128,12 +129,22 @@ const OrdenesPage = () => {
         };
       });
 
+      // Preparar el mecánico responsable
+      const mecanicosData = formData.mecanicoResponsableId 
+        ? [{
+            mecanicoId: parseInt(formData.mecanicoResponsableId),
+            rol: 'LIDER',
+            horasTrabajadas: 0
+          }]
+        : [];
+
       const submitData = {
         placa: formData.placaVehiculo,
         diagnosticoInicial: formData.descripcion,
         estado: formData.estado,
         fechaIngreso: new Date().toISOString().split('T')[0], // Current date
-        servicios: serviciosData
+        servicios: serviciosData,
+        mecanicos: mecanicosData
       };
 
       console.log('Submitting orden data:', submitData);
@@ -163,12 +174,19 @@ const OrdenesPage = () => {
 
   const handleEdit = (orden) => {
     setEditingOrden(orden);
+    
+    // Obtener el primer mecánico como responsable (si existe)
+    const mecanicoResponsable = orden.mecanicos && orden.mecanicos.length > 0 
+      ? (orden.mecanicos[0].idMecanico || orden.mecanicos[0].mecanicoId)
+      : '';
+    
     setFormData({
       codigo: orden.codigo || '',
       descripcion: orden.diagnosticoInicial || orden.descripcion || '',
       estado: orden.estado || 'PENDIENTE',
       idCliente: orden.cliente?.idCliente || orden.idCliente?.toString() || '',
       placaVehiculo: orden.vehiculo?.placa || orden.placa || '',
+      mecanicoResponsableId: mecanicoResponsable.toString(),
       mecanicos: orden.mecanicos?.map(m => m.idMecanico) || [],
       servicios: orden.servicios || [],
       repuestos: orden.repuestos?.map(r => ({ idRepuesto: r.idRepuesto, cantidad: r.cantidadUsada || r.cantidad })) || []
@@ -252,6 +270,7 @@ const OrdenesPage = () => {
       estado: 'PENDIENTE',
       idCliente: '',
       placaVehiculo: '',
+      mecanicoResponsableId: '',
       mecanicos: [],
       servicios: [],
       repuestos: []
@@ -518,14 +537,15 @@ const OrdenesPage = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Vehículo
+                Vehículo *
               </label>
               <select
                 value={formData.placaVehiculo}
                 onChange={(e) => setFormData({...formData, placaVehiculo: e.target.value})}
+                required
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -538,6 +558,31 @@ const OrdenesPage = () => {
                 {vehiculos.map(vehiculo => (
                   <option key={vehiculo.placa} value={vehiculo.placa}>
                     {vehiculo.placa} - {vehiculo.marca} {vehiculo.modelo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                Mecánico Responsable *
+              </label>
+              <select
+                value={formData.mecanicoResponsableId}
+                onChange={(e) => setFormData({...formData, mecanicoResponsableId: e.target.value})}
+                required
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <option value="">Seleccionar mecánico</option>
+                {mecanicos.map(mecanico => (
+                  <option key={mecanico.idMecanico} value={mecanico.idMecanico}>
+                    {mecanico.nombre} {mecanico.apellido || ''}
                   </option>
                 ))}
               </select>

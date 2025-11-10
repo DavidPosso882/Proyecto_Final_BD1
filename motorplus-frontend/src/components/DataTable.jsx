@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataTable = ({ data, columns, title, onEdit, onDelete, onView }) => {
+const DataTable = ({ data, columns, title, onEdit, onDelete, onView, onDownloadPDF }) => {
   const tableBg = 'white';
   const borderColor = 'gray.200';
   const hoverBg = 'gray.50';
@@ -130,6 +130,32 @@ const DataTable = ({ data, columns, title, onEdit, onDelete, onView }) => {
                           }}
                         >
                           👁️
+                        </button>
+                      )}
+                      {onDownloadPDF && (
+                        <button
+                          onClick={() => onDownloadPDF(item)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: 'transparent',
+                            color: '#7c3aed',
+                            border: '1px solid #7c3aed',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#7c3aed';
+                            e.target.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                            e.target.style.color = '#7c3aed';
+                          }}
+                          title="Descargar PDF"
+                        >
+                          📄
                         </button>
                       )}
                       <button

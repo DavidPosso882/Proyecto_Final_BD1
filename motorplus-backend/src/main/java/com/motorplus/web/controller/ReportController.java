@@ -997,6 +997,317 @@ public class ReportController {
         };
     }
 
+    // Obtener detalle de factura para PDF
+    @GetMapping("/factura/{idFactura}")
+    public Map<String, Object> getFacturaDetalle(@PathVariable Integer idFactura) {
+        try {
+            // Obtener información de la factura
+            String sqlFactura = """
+                SELECT 
+                    f.id_factura,
+                    f.fecha_emision,
+                    f.subtotal,
+                    f.total,
+                    f.estado_pago,
+                    f.orden_codigo,
+                    ot.diagnostico_inicial,
+                    ot.estado as orden_estado,
+                    c.id_cliente,
+                    COALESCE(c.nombre, '') as cliente_nombre,
+                    COALESCE(c.apellido, '') as cliente_apellido,
+                    COALESCE(c.telefono, '') as cliente_telefono,
+                    COALESCE(c.email, '') as cliente_email,
+                    v.placa,
+                    COALESCE(v.marca, '') as vehiculo_marca,
+                    COALESCE(v.modelo, '') as vehiculo_modelo,
+                    COALESCE(v.anio, 0) as vehiculo_anio
+                FROM Factura f
+                INNER JOIN OrdenTrabajo ot ON f.orden_codigo = ot.codigo
+                INNER JOIN Vehiculo v ON ot.placa = v.placa
+                INNER JOIN Cliente c ON v.documento_cliente = c.id_cliente
+                WHERE f.id_factura = ?
+                """;
+            
+            List<Map<String, Object>> facturaList = jdbcTemplate.queryForList(sqlFactura, idFactura);
+            if (facturaList.isEmpty()) {
+                throw new RuntimeException("Factura no encontrada con ID: " + idFactura);
+            }
+            
+            Map<String, Object> factura = facturaList.get(0);
+            
+            // Obtener servicios de la orden
+            String sqlServicios = """
+                SELECT 
+                    s.nombre,
+                    os.cantidad,
+                    os.precio_aplicado,
+                    (os.cantidad * os.precio_aplicado) as subtotal
+                FROM OrdenServicio os
+                INNER JOIN Servicio s ON os.servicio_codigo = s.codigo
+                WHERE os.orden_codigo = ?
+                """;
+            
+            List<Map<String, Object>> servicios = jdbcTemplate.queryForList(
+                sqlServicios, 
+                factura.get("orden_codigo")
+            );
+            
+            // Obtener repuestos de la orden
+            String sqlRepuestos = """
+                SELECT 
+                    r.nombre,
+                    orep.cantidad_usada as cantidad,
+                    orep.precio_aplicado,
+                    (orep.cantidad_usada * orep.precio_aplicado) as subtotal
+                FROM OrdenRepuesto orep
+                INNER JOIN Repuesto r ON orep.repuesto_codigo = r.codigo
+                WHERE orep.orden_codigo = ?
+                """;
+            
+            List<Map<String, Object>> repuestos = jdbcTemplate.queryForList(
+                sqlRepuestos, 
+                factura.get("orden_codigo")
+            );
+            
+            Map<String, Object> resultado = new java.util.HashMap<>();
+            resultado.put("factura", factura);
+            resultado.put("servicios", servicios);
+            resultado.put("repuestos", repuestos);
+            
+            return resultado;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            errorResponse.put("error", true);
+            errorResponse.put("mensaje", "Error al obtener detalle de factura: " + e.getMessage());
+            errorResponse.put("idFactura", idFactura);
+            return errorResponse;
+        }
+    }
+
+    // Exportar Factura a PDF
+    @GetMapping("/export/factura/{idFactura}")
+    public ResponseEntity<byte[]> exportFacturaPDF(@PathVariable Integer idFactura) {
+        try {
+            Map<String, Object> facturaDetalle = getFacturaDetalle(idFactura);
+            
+            if (facturaDetalle.containsKey("error")) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> factura = (Map<String, Object>) facturaDetalle.get("factura");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> servicios = (List<Map<String, Object>>) facturaDetalle.get("servicios");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> repuestos = (List<Map<String, Object>>) facturaDetalle.get("repuestos");
+            
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdf = new PdfDocument(writer);
+            Document document = new Document(pdf);
+
+            // Encabezado de la factura
+            document.add(new Paragraph("MOTORPLUS")
+                .setFontSize(24)
+                .setBold()
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            document.add(new Paragraph("Sistema de Gestión de Taller Automotriz")
+                .setFontSize(10)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            document.add(new Paragraph("NIT: 900.123.456-7")
+                .setFontSize(10)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            document.add(new Paragraph("\n"));
+            
+            // Título FACTURA
+            document.add(new Paragraph("FACTURA DE VENTA")
+                .setFontSize(18)
+                .setBold()
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            document.add(new Paragraph("No. " + factura.get("id_factura"))
+                .setFontSize(14)
+                .setBold()
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            document.add(new Paragraph("\n"));
+            
+            // Información de factura y cliente en dos columnas
+            Table infoTable = new Table(2);
+            infoTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            // Columna izquierda - Datos del cliente
+            String clienteInfo = "CLIENTE:\n" +
+                factura.get("cliente_nombre") + " " + factura.get("cliente_apellido") + "\n" +
+                "Documento: " + factura.get("id_cliente") + "\n" +
+                "Teléfono: " + factura.get("cliente_telefono") + "\n" +
+                "Email: " + factura.get("cliente_email");
+            infoTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph(clienteInfo).setFontSize(10))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            // Columna derecha - Datos de la factura
+            String facturaInfo = "FECHA: " + factura.get("fecha_emision") + "\n" +
+                "ORDEN DE TRABAJO: " + factura.get("orden_codigo") + "\n" +
+                "ESTADO: " + factura.get("estado_pago") + "\n\n" +
+                "VEHÍCULO:\n" +
+                factura.get("vehiculo_marca") + " " + factura.get("vehiculo_modelo") + " " + factura.get("vehiculo_anio") + "\n" +
+                "Placa: " + factura.get("placa");
+            infoTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph(facturaInfo).setFontSize(10))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+            
+            document.add(infoTable);
+            document.add(new Paragraph("\n"));
+            
+            // Tabla de servicios y repuestos
+            document.add(new Paragraph("DETALLE DE LA FACTURA").setBold().setFontSize(12));
+            Table detalleTable = new Table(new float[]{3, 1, 2, 2});
+            detalleTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            // Encabezados
+            detalleTable.addHeaderCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("Descripción").setBold())
+                .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY));
+            detalleTable.addHeaderCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("Cant.").setBold())
+                .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+            detalleTable.addHeaderCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("Precio Unit.").setBold())
+                .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+            detalleTable.addHeaderCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("Subtotal").setBold())
+                .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+            
+            // Agregar servicios
+            if (servicios != null && !servicios.isEmpty()) {
+                for (Map<String, Object> servicio : servicios) {
+                    detalleTable.addCell(servicio.get("nombre").toString());
+                    detalleTable.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph(servicio.get("cantidad").toString()))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+                    
+                    // Convertir precio_aplicado a número
+                    Object precioObj = servicio.get("precio_aplicado");
+                    double precio = precioObj instanceof Number ? ((Number) precioObj).doubleValue() : 0.0;
+                    detalleTable.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph("$" + String.format("%,.2f", precio)))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+                    
+                    // Convertir subtotal a número
+                    Object subtotalObj = servicio.get("subtotal");
+                    double subtotal = subtotalObj instanceof Number ? ((Number) subtotalObj).doubleValue() : 0.0;
+                    detalleTable.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph("$" + String.format("%,.2f", subtotal)))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+                }
+            }
+            
+            // Agregar repuestos
+            if (repuestos != null && !repuestos.isEmpty()) {
+                for (Map<String, Object> repuesto : repuestos) {
+                    detalleTable.addCell(repuesto.get("nombre").toString());
+                    detalleTable.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph(repuesto.get("cantidad").toString()))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+                    
+                    // Convertir precio_aplicado a número
+                    Object precioObj = repuesto.get("precio_aplicado");
+                    double precio = precioObj instanceof Number ? ((Number) precioObj).doubleValue() : 0.0;
+                    detalleTable.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph("$" + String.format("%,.2f", precio)))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+                    
+                    // Convertir subtotal a número
+                    Object subtotalObj = repuesto.get("subtotal");
+                    double subtotal = subtotalObj instanceof Number ? ((Number) subtotalObj).doubleValue() : 0.0;
+                    detalleTable.addCell(new com.itextpdf.layout.element.Cell()
+                        .add(new Paragraph("$" + String.format("%,.2f", subtotal)))
+                        .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT));
+                }
+            }
+            
+            document.add(detalleTable);
+            document.add(new Paragraph("\n"));
+            
+            // Totales
+            Table totalesTable = new Table(new float[]{3, 2});
+            totalesTable.setWidth(com.itextpdf.layout.properties.UnitValue.createPercentValue(100));
+            
+            // Convertir totales a BigDecimal de forma segura
+            Object subtotalObj = factura.get("subtotal");
+            java.math.BigDecimal subtotal = subtotalObj instanceof Number 
+                ? new java.math.BigDecimal(((Number) subtotalObj).doubleValue()) 
+                : java.math.BigDecimal.ZERO;
+            
+            Object totalObj = factura.get("total");
+            java.math.BigDecimal total = totalObj instanceof Number 
+                ? new java.math.BigDecimal(((Number) totalObj).doubleValue()) 
+                : java.math.BigDecimal.ZERO;
+            
+            java.math.BigDecimal iva = total.subtract(subtotal);
+            
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph(""))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph(""))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("SUBTOTAL:").setBold().setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("$" + String.format("%,.2f", subtotal)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("IVA (19%):").setBold().setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("$" + String.format("%,.2f", iva)).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("TOTAL A PAGAR:").setBold().setFontSize(12).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            totalesTable.addCell(new com.itextpdf.layout.element.Cell()
+                .add(new Paragraph("$" + String.format("%,.2f", total)).setBold().setFontSize(12).setTextAlignment(com.itextpdf.layout.properties.TextAlignment.RIGHT))
+                .setBackgroundColor(com.itextpdf.kernel.colors.ColorConstants.LIGHT_GRAY)
+                .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+            
+            document.add(totalesTable);
+            document.add(new Paragraph("\n\n"));
+            
+            // Pie de página
+            document.add(new Paragraph("Gracias por su preferencia")
+                .setFontSize(10)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER)
+                .setItalic());
+            document.add(new Paragraph("Para cualquier consulta contacte con nosotros")
+                .setFontSize(8)
+                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER));
+
+            document.close();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "factura_" + idFactura + ".pdf");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(baos.toByteArray());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     private String getReportTitle(int reportId) {
         return switch (reportId) {
             case 1 -> "Lista de Clientes";

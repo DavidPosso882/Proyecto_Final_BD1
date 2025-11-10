@@ -10,12 +10,11 @@ const FacturasPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFactura, setEditingFactura] = useState(null);
   const [formData, setFormData] = useState({
-    idOrdenTrabajo: '',
+    ordenCodigo: '',
     fechaEmision: '',
     subtotal: '',
-    impuestos: '',
     total: '',
-    estado: 'PENDIENTE'
+    estadoPago: 'PENDIENTE'
   });
 
   useEffect(() => {
@@ -60,34 +59,48 @@ const FacturasPage = () => {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          idOrdenTrabajo: parseInt(formData.idOrdenTrabajo),
+          ordenCodigo: parseInt(formData.ordenCodigo),
           subtotal: parseFloat(formData.subtotal),
-          impuestos: parseFloat(formData.impuestos),
           total: parseFloat(formData.total),
+          estadoPago: formData.estadoPago,
           fechaEmision: formData.fechaEmision || new Date().toISOString().split('T')[0]
         })
       });
 
-      if (!response.ok) throw new Error('Error al guardar factura');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error del servidor:', errorText);
+        throw new Error('Error al guardar factura: ' + errorText);
+      }
 
       await fetchFacturas();
       setIsModalOpen(false);
       resetForm();
     } catch (err) {
       setError(err.message);
+      console.error('Error completo:', err);
     }
   };
 
   const handleEdit = (factura) => {
     setEditingFactura(factura);
+    
+    // Manejar la fecha correctamente sin conversión de zona horaria
+    let fechaFormateada = '';
+    if (factura.fechaEmision) {
+      if (typeof factura.fechaEmision === 'string') {
+        fechaFormateada = factura.fechaEmision.split('T')[0];
+      } else {
+        fechaFormateada = factura.fechaEmision;
+      }
+    }
+    
     setFormData({
-      idOrdenTrabajo: factura.idOrdenTrabajo.toString(),
-      fechaEmision: factura.fechaEmision ? factura.fechaEmision.split('T')[0] : '',
-      subtotal: factura.subtotal.toString(),
-      impuestos: factura.impuestos.toString(),
-      total: factura.total.toString(),
-      estado: factura.estado
+      ordenCodigo: factura.ordenCodigo ? factura.ordenCodigo.toString() : '',
+      fechaEmision: fechaFormateada,
+      subtotal: factura.subtotal ? factura.subtotal.toString() : '',
+      total: factura.total ? factura.total.toString() : '',
+      estadoPago: factura.estadoPago || 'PENDIENTE'
     });
     setIsModalOpen(true);
   };
@@ -108,40 +121,108 @@ const FacturasPage = () => {
     }
   };
 
+  const handleDownloadPDF = async (factura) => {
+    try {
+      console.log('Descargando PDF para factura:', factura.idFactura);
+      const response = await fetch(`http://localhost:8080/api/reports/export/factura/${factura.idFactura}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error del servidor:', errorText);
+        throw new Error(`Error al generar el PDF: ${response.status}`);
+      }
+
+      // Verificar que es un PDF
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+      
+      // Obtener el blob del PDF
+      const blob = await response.blob();
+      console.log('Blob recibido, tamaño:', blob.size);
+      
+      // Crear un URL temporal para el blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear un enlace temporal y hacer clic en él para descargar
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `factura_${factura.idFactura}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpiar
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      console.log('PDF descargado exitosamente');
+    } catch (err) {
+      console.error('Error al descargar PDF:', err);
+      setError(`Error al descargar el PDF de la factura: ${err.message}`);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
-      idOrdenTrabajo: '',
+      ordenCodigo: '',
       fechaEmision: '',
       subtotal: '',
-      impuestos: '',
       total: '',
-      estado: 'PENDIENTE'
+      estadoPago: 'PENDIENTE'
     });
     setEditingFactura(null);
   };
 
   const openCreateModal = () => {
     resetForm();
+    // Establecer la fecha actual en formato local
+    const hoy = new Date();
+    const fechaLocal = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000))
+      .toISOString()
+      .split('T')[0];
+    setFormData(prev => ({
+      ...prev,
+      fechaEmision: fechaLocal
+    }));
     setIsModalOpen(true);
   };
 
+  // Calcular total automáticamente (subtotal + 19% IVA)
   const calculateTotal = () => {
     const subtotal = parseFloat(formData.subtotal) || 0;
-    const impuestos = parseFloat(formData.impuestos) || 0;
-    return (subtotal + impuestos).toFixed(2);
+    const iva = subtotal * 0.19;
+    return (subtotal + iva).toFixed(2);
   };
+
+  // Actualizar total cuando cambie el subtotal
+  useEffect(() => {
+    if (formData.subtotal) {
+      setFormData(prev => ({
+        ...prev,
+        total: calculateTotal()
+      }));
+    }
+  }, [formData.subtotal]);
 
   const columns = [
     { key: 'idFactura', label: 'ID' },
     {
-      key: 'ordenTrabajo',
+      key: 'ordenCodigo',
       label: 'Orden',
-      render: (item) => item.ordenTrabajo?.codigo || 'N/A'
+      render: (item) => `Orden ${item.ordenCodigo || 'N/A'}`
     },
     {
       key: 'fechaEmision',
       label: 'Fecha Emisión',
-      render: (item) => item.fechaEmision ? new Date(item.fechaEmision).toLocaleDateString() : 'N/A'
+      render: (item) => {
+        if (!item.fechaEmision) return 'N/A';
+        // Extraer solo la fecha sin conversión de zona horaria
+        const fecha = typeof item.fechaEmision === 'string' 
+          ? item.fechaEmision.split('T')[0] 
+          : item.fechaEmision;
+        // Formatear manualmente para evitar problemas de zona horaria
+        const [año, mes, dia] = fecha.split('-');
+        return `${dia}/${mes}/${año}`;
+      }
     },
     {
       key: 'subtotal',
@@ -149,16 +230,11 @@ const FacturasPage = () => {
       render: (item) => `$${item.subtotal.toLocaleString()}`
     },
     {
-      key: 'impuestos',
-      label: 'Impuestos',
-      render: (item) => `$${item.impuestos.toLocaleString()}`
-    },
-    {
       key: 'total',
       label: 'Total',
       render: (item) => `$${item.total.toLocaleString()}`
     },
-    { key: 'estado', label: 'Estado' }
+    { key: 'estadoPago', label: 'Estado' }
   ];
 
   if (loading) {
@@ -251,6 +327,7 @@ const FacturasPage = () => {
         title="Lista de Facturas"
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onDownloadPDF={handleDownloadPDF}
       />
 
       <Modal
@@ -266,8 +343,8 @@ const FacturasPage = () => {
                 Orden de Trabajo *
               </label>
               <select
-                value={formData.idOrdenTrabajo}
-                onChange={(e) => setFormData({...formData, idOrdenTrabajo: e.target.value})}
+                value={formData.ordenCodigo}
+                onChange={(e) => setFormData({...formData, ordenCodigo: e.target.value})}
                 required
                 style={{
                   width: '100%',
@@ -279,8 +356,8 @@ const FacturasPage = () => {
               >
                 <option value="">Seleccionar orden</option>
                 {ordenes.map(orden => (
-                  <option key={orden.idOrdenTrabajo} value={orden.idOrdenTrabajo}>
-                    {orden.codigo} - {orden.vehiculo?.marca} {orden.vehiculo?.modelo}
+                  <option key={orden.codigo} value={orden.codigo}>
+                    Orden {orden.codigo} - {orden.vehiculo?.marca || 'N/A'} {orden.vehiculo?.modelo || ''}
                   </option>
                 ))}
               </select>
@@ -310,8 +387,8 @@ const FacturasPage = () => {
                 Estado *
               </label>
               <select
-                value={formData.estado}
-                onChange={(e) => setFormData({...formData, estado: e.target.value})}
+                value={formData.estadoPago}
+                onChange={(e) => setFormData({...formData, estadoPago: e.target.value})}
                 required
                 style={{
                   width: '100%',
@@ -332,62 +409,72 @@ const FacturasPage = () => {
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
                 Subtotal *
               </label>
-              <input
-                type="number"
-                value={formData.subtotal}
-                onChange={(e) => setFormData({...formData, subtotal: e.target.value})}
-                required
-                min="0"
-                step="0.01"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontWeight: '500' }}>$</span>
+                <input
+                  type="number"
+                  value={formData.subtotal}
+                  onChange={(e) => setFormData({...formData, subtotal: e.target.value})}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 28px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                  }}
+                />
+              </div>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Impuestos *
+                IVA (19%)
               </label>
-              <input
-                type="number"
-                value={formData.impuestos}
-                onChange={(e) => setFormData({...formData, impuestos: e.target.value})}
-                required
-                min="0"
-                step="0.01"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280', fontWeight: '500' }}>$</span>
+                <input
+                  type="text"
+                  value={(parseFloat(formData.subtotal) * 0.19 || 0).toFixed(2)}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 28px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                    backgroundColor: '#f9fafb',
+                    color: '#6b7280',
+                  }}
+                />
+              </div>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
                 Total
               </label>
-              <input
-                type="number"
-                value={calculateTotal()}
-                readOnly
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  backgroundColor: '#f9fafb',
-                  fontWeight: '500',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#16a34a', fontWeight: '600' }}>$</span>
+                <input
+                  type="text"
+                  value={formData.total}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 28px',
+                    border: '2px solid #16a34a',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                    backgroundColor: '#f0fdf4',
+                    fontWeight: '600',
+                    color: '#16a34a',
+                  }}
+                />
+              </div>
             </div>
           </div>
 

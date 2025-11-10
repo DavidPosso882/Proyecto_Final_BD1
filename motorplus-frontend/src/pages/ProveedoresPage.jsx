@@ -11,8 +11,7 @@ const ProveedoresPage = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
-    email: '',
-    direccion: ''
+    email: ''
   });
 
   useEffect(() => {
@@ -35,16 +34,25 @@ const ProveedoresPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const proveedorId = editingProveedor ? editingProveedor.id : null;
       const url = editingProveedor
-        ? `http://localhost:8080/api/proveedores/${editingProveedor.idProveedor}`
+        ? `http://localhost:8080/api/proveedores/${proveedorId}`
         : 'http://localhost:8080/api/proveedores';
 
       const method = editingProveedor ? 'PUT' : 'POST';
 
+      // Preparar datos para enviar al backend (usando 'correo' en lugar de 'email')
+      const submitData = {
+        nombre: formData.nombre,
+        correo: formData.email,  // El backend espera 'correo'
+        telefono: formData.telefono,
+        activo: true
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       });
 
       if (!response.ok) throw new Error('Error al guardar proveedor');
@@ -62,8 +70,7 @@ const ProveedoresPage = () => {
     setFormData({
       nombre: proveedor.nombre,
       telefono: proveedor.telefono,
-      email: proveedor.email || '',
-      direccion: proveedor.direccion || ''
+      email: proveedor.correo || ''
     });
     setIsModalOpen(true);
   };
@@ -88,8 +95,7 @@ const ProveedoresPage = () => {
     setFormData({
       nombre: '',
       telefono: '',
-      email: '',
-      direccion: ''
+      email: ''
     });
     setEditingProveedor(null);
   };
@@ -100,11 +106,10 @@ const ProveedoresPage = () => {
   };
 
   const columns = [
-    { key: 'idProveedor', label: 'ID' },
+    { key: 'id', label: 'ID' },
     { key: 'nombre', label: 'Nombre' },
     { key: 'telefono', label: 'Teléfono' },
-    { key: 'email', label: 'Email' },
-    { key: 'direccion', label: 'Dirección' }
+    { key: 'correo', label: 'Email' }
   ];
 
   if (loading) {
@@ -247,37 +252,19 @@ const ProveedoresPage = () => {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Email
+                Email *
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
+                required
                 style={{
                   width: '100%',
                   padding: '8px 12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '6px',
                   fontSize: '0.875rem',
-                }}
-              />
-            </div>
-
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Dirección
-              </label>
-              <textarea
-                value={formData.direccion}
-                onChange={(e) => setFormData({...formData, direccion: e.target.value})}
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  resize: 'vertical',
                 }}
               />
             </div>

@@ -11,8 +11,7 @@ const ServiciosPage = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    precio: '',
-    duracionEstimada: ''
+    precio: ''
   });
 
   useEffect(() => {
@@ -35,8 +34,10 @@ const ServiciosPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Usar idServicio o codigo como fallback
+      const servicioId = editingServicio ? (editingServicio.idServicio || editingServicio.codigo) : null;
       const url = editingServicio
-        ? `http://localhost:8080/api/servicios/${editingServicio.idServicio}`
+        ? `http://localhost:8080/api/servicios/${servicioId}`
         : 'http://localhost:8080/api/servicios';
 
       const method = editingServicio ? 'PUT' : 'POST';
@@ -46,8 +47,7 @@ const ServiciosPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          precio: parseFloat(formData.precio),
-          duracionEstimada: parseInt(formData.duracionEstimada)
+          precio: parseFloat(formData.precio)
         })
       });
 
@@ -66,8 +66,7 @@ const ServiciosPage = () => {
     setFormData({
       nombre: servicio.nombre,
       descripcion: servicio.descripcion || '',
-      precio: servicio.precio.toString(),
-      duracionEstimada: servicio.duracionEstimada.toString()
+      precio: servicio.precio.toString()
     });
     setIsModalOpen(true);
   };
@@ -92,8 +91,7 @@ const ServiciosPage = () => {
     setFormData({
       nombre: '',
       descripcion: '',
-      precio: '',
-      duracionEstimada: ''
+      precio: ''
     });
     setEditingServicio(null);
   };
@@ -111,11 +109,6 @@ const ServiciosPage = () => {
       key: 'precio',
       label: 'Precio',
       render: (item) => `$${item.precio.toLocaleString()}`
-    },
-    {
-      key: 'duracionEstimada',
-      label: 'Duración (min)',
-      render: (item) => `${item.duracionEstimada} min`
     }
   ];
 
@@ -257,7 +250,7 @@ const ServiciosPage = () => {
               />
             </div>
 
-            <div>
+            <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
                 Precio *
               </label>
@@ -268,26 +261,6 @@ const ServiciosPage = () => {
                 required
                 min="0"
                 step="0.01"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
-                Duración Estimada (min) *
-              </label>
-              <input
-                type="number"
-                value={formData.duracionEstimada}
-                onChange={(e) => setFormData({...formData, duracionEstimada: e.target.value})}
-                required
-                min="1"
                 style={{
                   width: '100%',
                   padding: '8px 12px',

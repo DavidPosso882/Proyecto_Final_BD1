@@ -2,12 +2,15 @@ package com.motorplus.web.controller;
 
 import com.motorplus.domain.entity.OrdenTrabajo;
 import com.motorplus.domain.entity.OrdenServicio;
+import com.motorplus.domain.entity.OrdenMecanico;
 import com.motorplus.domain.entity.Servicio;
 import com.motorplus.service.OrdenTrabajoService;
 import com.motorplus.service.OrdenServicioService;
+import com.motorplus.service.OrdenMecanicoService;
 import com.motorplus.service.ServicioService;
 import com.motorplus.web.dto.OrdenTrabajoDTO;
 import com.motorplus.web.dto.OrdenServicioDTO;
+import com.motorplus.web.dto.OrdenMecanicoDTO;
 import com.motorplus.web.dto.ServicioDTO;
 import com.motorplus.web.dto.VehiculoDTO;
 import com.motorplus.web.dto.ClienteDTO;
@@ -15,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +35,9 @@ public class OrdenTrabajoController {
 
     @Autowired
     private OrdenServicioService ordenServicioService;
+
+    @Autowired
+    private OrdenMecanicoService ordenMecanicoService;
 
     @Autowired
     private ServicioService servicioService;
@@ -84,6 +91,19 @@ public class OrdenTrabajoController {
             }
         }
         
+        // Procesar y guardar los mecánicos asociados
+        if (ordenTrabajoDTO.getMecanicos() != null && !ordenTrabajoDTO.getMecanicos().isEmpty()) {
+            for (OrdenMecanicoDTO mecanicoDTO : ordenTrabajoDTO.getMecanicos()) {
+                OrdenMecanico ordenMecanico = new OrdenMecanico();
+                ordenMecanico.setOrdenCodigo(savedOrden.getCodigo());
+                ordenMecanico.setMecanicoId(mecanicoDTO.getMecanicoId());
+                ordenMecanico.setRol(mecanicoDTO.getRol() != null ? mecanicoDTO.getRol() : "ASIGNADO");
+                ordenMecanico.setHorasTrabajadas(mecanicoDTO.getHorasTrabajadas() != null ? mecanicoDTO.getHorasTrabajadas() : BigDecimal.ZERO);
+                
+                ordenMecanicoService.save(ordenMecanico);
+            }
+        }
+        
         // Recargar la orden con las relaciones
         Optional<OrdenTrabajo> ordenConRelaciones = ordenTrabajoService.findById(savedOrden.getCodigo());
         return ResponseEntity.ok(convertToDTO(ordenConRelaciones.orElse(savedOrden)));
@@ -122,6 +142,19 @@ public class OrdenTrabajoController {
                 }
                 
                 ordenServicioService.save(ordenServicio);
+            }
+        }
+        
+        // Procesar mecánicos actualizados si vienen en el DTO
+        if (ordenTrabajoDTO.getMecanicos() != null) {
+            for (OrdenMecanicoDTO mecanicoDTO : ordenTrabajoDTO.getMecanicos()) {
+                OrdenMecanico ordenMecanico = new OrdenMecanico();
+                ordenMecanico.setOrdenCodigo(updatedOrden.getCodigo());
+                ordenMecanico.setMecanicoId(mecanicoDTO.getMecanicoId());
+                ordenMecanico.setRol(mecanicoDTO.getRol() != null ? mecanicoDTO.getRol() : "ASIGNADO");
+                ordenMecanico.setHorasTrabajadas(mecanicoDTO.getHorasTrabajadas() != null ? mecanicoDTO.getHorasTrabajadas() : BigDecimal.ZERO);
+                
+                ordenMecanicoService.save(ordenMecanico);
             }
         }
         
