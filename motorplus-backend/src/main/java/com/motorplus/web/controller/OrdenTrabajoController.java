@@ -5,6 +5,12 @@ import com.motorplus.service.OrdenTrabajoService;
 import com.motorplus.web.dto.OrdenTrabajoDTO;
 import com.motorplus.web.dto.VehiculoDTO;
 import com.motorplus.web.dto.ClienteDTO;
+import com.motorplus.web.dto.OrdenServicioDTO;
+import com.motorplus.web.dto.OrdenRepuestoDTO;
+import com.motorplus.web.dto.OrdenMecanicoDTO;
+import com.motorplus.web.dto.ServicioDTO;
+import com.motorplus.web.dto.RepuestoDTO;
+import com.motorplus.web.dto.MecanicoDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +30,7 @@ public class OrdenTrabajoController {
 
     @GetMapping
     public ResponseEntity<List<OrdenTrabajoDTO>> getAllOrdenesTrabajo() {
-        List<OrdenTrabajo> ordenesEntities = ordenTrabajoService.findAll();
+        List<OrdenTrabajo> ordenesEntities = ordenTrabajoService.findAllWithRelations();
         List<OrdenTrabajoDTO> ordenes = ordenesEntities.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -183,6 +189,67 @@ public class OrdenTrabajoController {
                 orden.getVehiculo().getCliente().getEmail(),
                 orden.getVehiculo().getCliente().getTipo()
             ));
+        }
+
+        // ✅ FIXED: Convertir relaciones de servicios, repuestos y mecánicos
+        if (orden.getOrdenServicios() != null && !orden.getOrdenServicios().isEmpty()) {
+            dto.setServicios(orden.getOrdenServicios().stream()
+                .map(os -> {
+                    OrdenServicioDTO servicioDTO = new OrdenServicioDTO();
+                    servicioDTO.setOrdenCodigo(os.getOrdenCodigo());
+                    servicioDTO.setServicioCodigo(os.getServicioCodigo());
+                    servicioDTO.setCantidad(os.getCantidad());
+                    servicioDTO.setPrecioAplicado(os.getPrecioAplicado());
+                    if (os.getServicio() != null) {
+                        ServicioDTO servicioInfo = new ServicioDTO();
+                        servicioInfo.setCodigo(os.getServicio().getCodigo());
+                        servicioInfo.setNombre(os.getServicio().getNombre());
+                        servicioInfo.setCategoria(os.getServicio().getCategoria());
+                        servicioDTO.setServicio(servicioInfo);
+                    }
+                    return servicioDTO;
+                })
+                .collect(Collectors.toList()));
+        }
+
+        if (orden.getOrdenRepuestos() != null && !orden.getOrdenRepuestos().isEmpty()) {
+            dto.setRepuestos(orden.getOrdenRepuestos().stream()
+                .map(or -> {
+                    OrdenRepuestoDTO repuestoDTO = new OrdenRepuestoDTO();
+                    repuestoDTO.setOrdenCodigo(or.getOrdenCodigo());
+                    repuestoDTO.setRepuestoCodigo(or.getRepuestoCodigo());
+                    repuestoDTO.setCantidadUsada(or.getCantidadUsada());
+                    repuestoDTO.setPrecioAplicado(or.getPrecioAplicado());
+                    if (or.getRepuesto() != null) {
+                        RepuestoDTO repuestoInfo = new RepuestoDTO();
+                        repuestoInfo.setCodigo(or.getRepuesto().getCodigo());
+                        repuestoInfo.setNombre(or.getRepuesto().getNombre());
+                        repuestoInfo.setStock(or.getRepuesto().getStock());
+                        repuestoDTO.setRepuesto(repuestoInfo);
+                    }
+                    return repuestoDTO;
+                })
+                .collect(Collectors.toList()));
+        }
+
+        if (orden.getOrdenMecanicos() != null && !orden.getOrdenMecanicos().isEmpty()) {
+            dto.setMecanicos(orden.getOrdenMecanicos().stream()
+                .map(om -> {
+                    OrdenMecanicoDTO mecanicoDTO = new OrdenMecanicoDTO();
+                    mecanicoDTO.setOrdenCodigo(om.getOrdenCodigo());
+                    mecanicoDTO.setMecanicoId(om.getMecanicoId());
+                    mecanicoDTO.setRol(om.getRol());
+                    mecanicoDTO.setHorasTrabajadas(om.getHorasTrabajadas());
+                    if (om.getMecanico() != null) {
+                        MecanicoDTO mecanicoInfo = new MecanicoDTO();
+                        mecanicoInfo.setIdMecanico(om.getMecanico().getIdMecanico());
+                        mecanicoInfo.setNombre(om.getMecanico().getNombre());
+                        mecanicoInfo.setTelefono(om.getMecanico().getTelefono());
+                        mecanicoDTO.setMecanico(mecanicoInfo);
+                    }
+                    return mecanicoDTO;
+                })
+                .collect(Collectors.toList()));
         }
 
         return dto;

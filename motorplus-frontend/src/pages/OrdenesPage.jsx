@@ -11,6 +11,8 @@ const OrdenesPage = () => {
   const [repuestos, setRepuestos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false);
   const [ordenDetalle, setOrdenDetalle] = useState(null);
@@ -111,9 +113,54 @@ const OrdenesPage = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors = [];
+
+    if (!formData.placaVehiculo) {
+      errors.push("Debe seleccionar un vehículo");
+    }
+
+    if (!formData.idCliente) {
+      errors.push("Debe seleccionar un cliente");
+    }
+
+    if (!formData.mecanicoResponsableId) {
+      errors.push("Debe seleccionar un mecánico responsable");
+    }
+
+    if (!formData.descripcion || formData.descripcion.trim() === '') {
+      errors.push("Debe ingresar una descripción del diagnóstico");
+    }
+
+    if (selectedServicios.length === 0 && selectedRepuestos.length === 0) {
+      errors.push("Debe seleccionar al menos un servicio o repuesto");
+    }
+
+    // Validar stock de repuestos
+    selectedRepuestos.forEach(repuestoItem => {
+      const repuesto = repuestos.find(r => (r.codigo || r.idRepuesto) === repuestoItem.repuestoCodigo);
+      if (repuesto && repuestoItem.cantidadUsada > (repuesto.stock || 0)) {
+        errors.push(`Stock insuficiente para ${repuesto.nombre}. Disponible: ${repuesto.stock}`);
+      }
+    });
+
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ FIXED: Validar formulario antes de enviar
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('\n'));
+      return;
+    }
+
     try {
+      setLoading(true);
+      setError(null);
+
       const url = editingOrden
         ? `http://localhost:8080/api/ordenes-trabajo/${editingOrden.codigo}`
         : 'http://localhost:8080/api/ordenes-trabajo';
@@ -141,7 +188,7 @@ const OrdenesPage = () => {
       });
 
       // Preparar el mecánico responsable
-      const mecanicosData = formData.mecanicoResponsableId 
+      const mecanicosData = formData.mecanicoResponsableId
         ? [{
             mecanicoId: parseInt(formData.mecanicoResponsableId),
             rol: 'LIDER',
@@ -153,7 +200,8 @@ const OrdenesPage = () => {
         placa: formData.placaVehiculo,
         diagnosticoInicial: formData.descripcion,
         estado: formData.estado,
-        fechaIngreso: new Date().toISOString().split('T')[0], // Current date in yyyy-MM-dd format
+        // ✅ FIXED: En edición, mantener la fecha original; en creación, usar fecha actual
+        fechaIngreso: editingOrden ? formData.fechaIngreso : new Date().toISOString().split('T')[0],
         servicios: serviciosData,
         repuestos: repuestosData,
         mecanicos: mecanicosData
@@ -185,17 +233,21 @@ const OrdenesPage = () => {
     } catch (err) {
       setError(err.message);
       console.error('Error saving orden:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEdit = (orden) => {
     setEditingOrden(orden);
-    
+    setError(null);
+    setSaving(false);
+
     // Obtener el primer mecánico como responsable (si existe)
-    const mecanicoResponsable = orden.mecanicos && orden.mecanicos.length > 0 
+    const mecanicoResponsable = orden.mecanicos && orden.mecanicos.length > 0
       ? (orden.mecanicos[0].idMecanico || orden.mecanicos[0].mecanicoId)
       : '';
-    
+
     setFormData({
       codigo: orden.codigo || '',
       descripcion: orden.diagnosticoInicial || orden.descripcion || '',
@@ -203,22 +255,24 @@ const OrdenesPage = () => {
       idCliente: orden.cliente?.idCliente || orden.idCliente?.toString() || '',
       placaVehiculo: orden.vehiculo?.placa || orden.placa || '',
       mecanicoResponsableId: mecanicoResponsable.toString(),
+      // ✅ FIXED: Agregar fechaIngreso desde la orden existente
+      fechaIngreso: orden.fechaIngreso || orden.fecha_ingreso || '',
       mecanicos: orden.mecanicos?.map(m => m.idMecanico) || [],
       servicios: orden.servicios || [],
       repuestos: orden.repuestos?.map(r => ({ idRepuesto: r.idRepuesto, cantidad: r.cantidadUsada || r.cantidad })) || []
     });
-    
+
     // Cargar los servicios seleccionados
     const serviciosSeleccionados = orden.servicios?.map(s => s.servicioCodigo || s.servicio?.codigo) || [];
     setSelectedServicios(serviciosSeleccionados);
-    
+
     // Cargar los repuestos seleccionados
     const repuestosSeleccionados = orden.repuestos?.map(r => ({
-      repuestoCodigo: r.repuestoCodigo || r.codigo,
+      repuestoCodigo: r.repuestoCodigo || r.repuesto?.codigo || r.codigo,
       cantidadUsada: r.cantidadUsada || r.cantidad || 1
     })) || [];
     setSelectedRepuestos(repuestosSeleccionados);
-    
+
     setIsModalOpen(true);
   };
 
@@ -280,30 +334,30 @@ const OrdenesPage = () => {
 
   const handleVerDetalle = async (ordenCodigo) => {
     try {
-      setLoading(true);
+      setLoadingDetail(true);
       setError(null);
-      
+
       // Validar que el código sea un número válido
       if (!ordenCodigo || (typeof ordenCodigo !== 'number' && isNaN(parseInt(ordenCodigo)))) {
         throw new Error('Código de orden inválido. El código debe ser un número.');
       }
-      
+
       const codigoNumerico = typeof ordenCodigo === 'number' ? ordenCodigo : parseInt(ordenCodigo);
-      
+
       const response = await fetch(`http://localhost:8080/api/reports/15/orden-trabajo/${codigoNumerico}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.mensaje || `Error ${response.status}: No se pudo cargar el detalle de la orden`);
       }
-      
+
       const detalle = await response.json();
-      
+
       // Verificar si hay error en la respuesta
       if (detalle.error) {
         throw new Error(detalle.mensaje || 'Error al cargar el detalle de la orden');
       }
-      
+
       setOrdenDetalle(detalle);
       setIsDetalleModalOpen(true);
     } catch (err) {
@@ -311,7 +365,7 @@ const OrdenesPage = () => {
       console.error('Error cargando detalle de orden:', err);
       alert('Error al cargar el detalle de la orden:\n' + err.message);
     } finally {
-      setLoading(false);
+      setLoadingDetail(false);
     }
   };
 
@@ -349,6 +403,8 @@ const OrdenesPage = () => {
     setSelectedServicios([]);
     setSelectedRepuestos([]);
     setEditingOrden(null);
+    setError(null);
+    setSaving(false);
   };
 
   const openCreateModal = () => {
@@ -411,6 +467,11 @@ const OrdenesPage = () => {
       key: 'serviciosCount',
       label: 'Servicios',
       render: (item) => item.servicios?.length || 0
+    },
+    {
+      key: 'repuestosCount',
+      label: 'Repuestos',
+      render: (item) => item.repuestos?.length || 0
     },
     {
       key: 'mecanicosCount',
@@ -860,21 +921,39 @@ const OrdenesPage = () => {
             </button>
             <button
               type="submit"
+              disabled={saving}
               style={{
                 padding: '8px 16px',
                 border: 'none',
                 borderRadius: '6px',
-                backgroundColor: '#2563eb',
+                backgroundColor: saving ? '#9ca3af' : '#2563eb',
                 color: 'white',
                 fontSize: '0.875rem',
                 fontWeight: '500',
-                cursor: 'pointer',
+                cursor: saving ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
+              onMouseEnter={(e) => {
+                if (!saving) e.target.style.backgroundColor = '#1d4ed8';
+              }}
+              onMouseLeave={(e) => {
+                if (!saving) e.target.style.backgroundColor = '#2563eb';
+              }}
             >
-              {editingOrden ? 'Actualizar' : 'Crear'}
+              {saving && (
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid #ffffff',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }}></div>
+              )}
+              {saving ? 'Guardando...' : (editingOrden ? 'Actualizar' : 'Crear')}
             </button>
           </div>
         </form>

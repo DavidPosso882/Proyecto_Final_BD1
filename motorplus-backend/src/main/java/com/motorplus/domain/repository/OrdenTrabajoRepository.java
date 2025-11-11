@@ -10,8 +10,14 @@ import java.util.List;
 @Repository
 public interface OrdenTrabajoRepository extends JpaRepository<OrdenTrabajo, Integer> {
 
-    @Query("SELECT ot FROM OrdenTrabajo ot " +
+    @Query("SELECT DISTINCT ot FROM OrdenTrabajo ot " +
+           "LEFT JOIN FETCH ot.ordenServicios os " +
+           "LEFT JOIN FETCH os.servicio " +
+           "LEFT JOIN FETCH ot.ordenRepuestos orp " +
+           "LEFT JOIN FETCH orp.repuesto " +
+           "LEFT JOIN FETCH ot.ordenMecanicos om " +
+           "LEFT JOIN FETCH om.mecanico " +
            "LEFT JOIN FETCH ot.vehiculo v " +
-           "LEFT JOIN FETCH v.cliente c")
+           "LEFT JOIN FETCH v.cliente")
     List<OrdenTrabajo> findAllWithRelations();
 }
