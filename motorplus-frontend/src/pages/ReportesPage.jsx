@@ -32,6 +32,42 @@ const ReportesPage = () => {
       { key: 'fecha', label: 'Fecha' },
       { key: 'total', label: 'Total' }
     ]},
+    { id: 11, name: 'Clientes VIP (Gasto > Promedio)', endpoint: 'clientes-vip', columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'nombre', label: 'Nombre' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'gasto_total', label: 'Gasto Total' },
+      { key: 'total_vehiculos', label: 'Vehículos' }
+    ]},
+    { id: 12, name: 'Vehículos Más Atendidos', endpoint: 'vehiculos-mas-servicios', columns: [
+      { key: 'placa', label: 'Placa' },
+      { key: 'vehiculo', label: 'Vehículo' },
+      { key: 'cliente', label: 'Cliente' },
+      { key: 'total_ordenes', label: 'Total Órdenes' },
+      { key: 'gasto_total', label: 'Gasto Total' }
+    ]},
+    { id: 16, name: 'Servicios Disponibles', endpoint: 'servicios-disponibles', columns: [
+      { key: 'codigo', label: 'Código' },
+      { key: 'nombre', label: 'Nombre' },
+      { key: 'categoria', label: 'Categoría' },
+      { key: 'precio', label: 'Precio' },
+      { key: 'descripcion', label: 'Descripción' }
+    ]},
+    { id: 17, name: 'Repuestos en Inventario', endpoint: 'repuestos-inventario', columns: [
+      { key: 'codigo', label: 'Código' },
+      { key: 'nombre', label: 'Nombre' },
+      { key: 'stock', label: 'Stock' },
+      { key: 'stock_minimo', label: 'Stock Mínimo' },
+      { key: 'precio_unitario', label: 'Precio Unitario' },
+      { key: 'descripcion', label: 'Descripción' }
+    ]},
+    { id: 18, name: 'Proveedores Activos', endpoint: 'proveedores-activos', columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'nombre', label: 'Nombre' },
+      { key: 'correo', label: 'Correo' },
+      { key: 'telefono', label: 'Teléfono' },
+      { key: 'activo', label: 'Activo' }
+    ]},
     { id: 14, name: 'Historial Completo de Cliente', endpoint: 'historial-cliente', columns: [
       { key: 'cliente', label: 'Cliente' },
       { key: 'placa', label: 'Placa' },
@@ -65,6 +101,21 @@ const ReportesPage = () => {
           break;
         case 4:
           data = await reporteService.getFacturasPendientesReport();
+          break;
+        case 11:
+          data = await reporteService.getClientesVIPReport();
+          break;
+        case 12:
+          data = await reporteService.getVehiculosMasServiciosReport();
+          break;
+        case 16:
+          data = await reporteService.getServiciosDisponiblesReport();
+          break;
+        case 17:
+          data = await reporteService.getRepuestosInventarioReport();
+          break;
+        case 18:
+          data = await reporteService.getProveedoresActivosReport();
           break;
         case 14:
           if (!documentoCliente) {

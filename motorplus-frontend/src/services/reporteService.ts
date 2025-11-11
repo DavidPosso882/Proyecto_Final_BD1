@@ -79,6 +79,21 @@ export const reporteService = {
     return response.data;
   },
 
+  async getServiciosDisponiblesReport(): Promise<ReportData[]> {
+    const response = await apiClient.get('/reports/16/servicios-disponibles');
+    return response.data;
+  },
+
+  async getRepuestosInventarioReport(): Promise<ReportData[]> {
+    const response = await apiClient.get('/reports/17/repuestos-inventario');
+    return response.data;
+  },
+
+  async getProveedoresActivosReport(): Promise<ReportData[]> {
+    const response = await apiClient.get('/reports/18/proveedores-activos');
+    return response.data;
+  },
+
   // Exportación a PDF
   async exportReportToPDF(reportId: number, documentoCliente?: string): Promise<Blob> {
     let url = `/reports/export/${reportId}`;

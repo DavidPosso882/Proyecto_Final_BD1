@@ -418,6 +418,78 @@ public class ReportController {
         );
     }
 
+    // Reporte 16: Servicios Disponibles (Simple)
+    @GetMapping("/16/servicios-disponibles")
+    public List<Map<String, Object>> getServiciosDisponiblesReport() {
+        String sql = """
+            SELECT
+                codigo,
+                nombre,
+                descripcion,
+                categoria,
+                precio,
+                fecha_creacion
+            FROM Servicio
+            ORDER BY categoria, nombre
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+            Map.of("codigo", rs.getInt("codigo"),
+                   "nombre", rs.getString("nombre"),
+                   "categoria", rs.getString("categoria"),
+                   "precio", rs.getBigDecimal("precio"),
+                   "descripcion", rs.getString("descripcion"))
+        );
+    }
+
+    // Reporte 17: Repuestos en Inventario (Simple)
+    @GetMapping("/17/repuestos-inventario")
+    public List<Map<String, Object>> getRepuestosInventarioReport() {
+        String sql = """
+            SELECT
+                codigo,
+                nombre,
+                descripcion,
+                stock,
+                stock_minimo,
+                precio_unitario,
+                fecha_creacion
+            FROM Repuesto
+            ORDER BY nombre
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+            Map.of("codigo", rs.getInt("codigo"),
+                   "nombre", rs.getString("nombre"),
+                   "stock", rs.getInt("stock"),
+                   "stock_minimo", rs.getInt("stock_minimo"),
+                   "precio_unitario", rs.getBigDecimal("precio_unitario"),
+                   "descripcion", rs.getString("descripcion"))
+        );
+    }
+
+    // Reporte 18: Proveedores Activos (Simple)
+    @GetMapping("/18/proveedores-activos")
+    public List<Map<String, Object>> getProveedoresActivosReport() {
+        String sql = """
+            SELECT
+                id,
+                nombre,
+                correo,
+                telefono,
+                activo,
+                fecha_creacion
+            FROM Proveedor
+            WHERE activo = TRUE
+            ORDER BY nombre
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) ->
+            Map.of("id", rs.getInt("id"),
+                   "nombre", rs.getString("nombre"),
+                   "correo", rs.getString("correo"),
+                   "telefono", rs.getString("telefono"),
+                   "activo", rs.getBoolean("activo"))
+        );
+    }
+
     // Reporte 15: Detalle Completo de Orden de Trabajo
     @GetMapping("/15/orden-trabajo/{codigoOrden}")
     public Map<String, Object> getOrdenTrabajoDetalleReport(@PathVariable String codigoOrden) {
@@ -996,6 +1068,9 @@ public class ReportController {
             case 11 -> getClientesVIPReport();
             case 12 -> getVehiculosMasServiciosReport();
             case 13 -> getFacturasSuperioresPromedioReport();
+            case 16 -> getServiciosDisponiblesReport();
+            case 17 -> getRepuestosInventarioReport();
+            case 18 -> getProveedoresActivosReport();
             default -> List.of();
         };
     }
@@ -1367,6 +1442,9 @@ public class ReportController {
             case 12 -> "Vehículos Más Atendidos";
             case 13 -> "Facturas Superiores al Promedio";
             case 14 -> "Historial Completo de Cliente";
+            case 16 -> "Servicios Disponibles";
+            case 17 -> "Repuestos en Inventario";
+            case 18 -> "Proveedores Activos";
             default -> "Reporte " + reportId;
         };
     }
