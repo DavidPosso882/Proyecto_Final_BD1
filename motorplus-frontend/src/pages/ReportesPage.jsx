@@ -398,6 +398,7 @@ const ReportesPage = () => {
                 data={reportData}
                 columns={currentReportConfig.columns}
                 title={currentReport}
+                showActions={false}
               />
             )
           ) : (

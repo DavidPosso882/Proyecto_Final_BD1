@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataTable = ({ data, columns, title, onEdit, onDelete, onView, onDownloadPDF }) => {
+const DataTable = ({ data, columns, title, onEdit, onDelete, onView, onDownloadPDF, showActions = true }) => {
   const tableBg = 'white';
   const borderColor = 'gray.200';
   const hoverBg = 'gray.50';
@@ -42,27 +42,29 @@ const DataTable = ({ data, columns, title, onEdit, onDelete, onView, onDownloadP
                   {column.label}
                 </th>
               ))}
-              <th
-                style={{
-                  padding: '12px 16px',
-                  textAlign: 'left',
-                  fontWeight: 'bold',
-                  color: '#374151',
-                  borderBottom: '1px solid #e5e7eb',
-                  fontSize: '0.875rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Acciones
-              </th>
+              {showActions && (
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    fontWeight: 'bold',
+                    color: '#374151',
+                    borderBottom: '1px solid #e5e7eb',
+                    fontSize: '0.875rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Acciones
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + 1}
+                  colSpan={columns.length + (showActions ? 1 : 0)}
                   style={{
                     textAlign: 'center',
                     padding: '48px 16px',
@@ -100,112 +102,114 @@ const DataTable = ({ data, columns, title, onEdit, onDelete, onView, onDownloadP
                       {column.render ? column.render(item) : item[column.key]}
                     </td>
                   ))}
-                  <td
-                    style={{
-                      padding: '16px',
-                      borderBottom: '1px solid #e5e7eb',
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {onView && (
+                  {showActions && (
+                    <td
+                      style={{
+                        padding: '16px',
+                        borderBottom: '1px solid #e5e7eb',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {onView && (
+                          <button
+                            onClick={() => onView(item)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: 'transparent',
+                              color: '#16a34a',
+                              border: '1px solid #16a34a',
+                              borderRadius: '6px',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#16a34a';
+                              e.target.style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = 'transparent';
+                              e.target.style.color = '#16a34a';
+                            }}
+                          >
+                            👁️
+                          </button>
+                        )}
+                        {onDownloadPDF && (
+                          <button
+                            onClick={() => onDownloadPDF(item)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: 'transparent',
+                              color: '#7c3aed',
+                              border: '1px solid #7c3aed',
+                              borderRadius: '6px',
+                              fontSize: '0.875rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#7c3aed';
+                              e.target.style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = 'transparent';
+                              e.target.style.color = '#7c3aed';
+                            }}
+                            title="Descargar PDF"
+                          >
+                            📄
+                          </button>
+                        )}
                         <button
-                          onClick={() => onView(item)}
+                          onClick={() => onEdit && onEdit(item)}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: 'transparent',
-                            color: '#16a34a',
-                            border: '1px solid #16a34a',
+                            color: '#2563eb',
+                            border: '1px solid #2563eb',
                             borderRadius: '6px',
                             fontSize: '0.875rem',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#16a34a';
+                            e.target.style.backgroundColor = '#2563eb';
                             e.target.style.color = 'white';
                           }}
                           onMouseLeave={(e) => {
                             e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = '#16a34a';
+                            e.target.style.color = '#2563eb';
                           }}
                         >
-                          👁️
+                          ✏️
                         </button>
-                      )}
-                      {onDownloadPDF && (
                         <button
-                          onClick={() => onDownloadPDF(item)}
+                          onClick={() => onDelete && onDelete(item)}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: 'transparent',
-                            color: '#7c3aed',
-                            border: '1px solid #7c3aed',
+                            color: '#dc2626',
+                            border: '1px solid #dc2626',
                             borderRadius: '6px',
                             fontSize: '0.875rem',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#7c3aed';
+                            e.target.style.backgroundColor = '#dc2626';
                             e.target.style.color = 'white';
                           }}
                           onMouseLeave={(e) => {
                             e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = '#7c3aed';
+                            e.target.style.color = '#dc2626';
                           }}
-                          title="Descargar PDF"
                         >
-                          📄
+                          🗑️
                         </button>
-                      )}
-                      <button
-                        onClick={() => onEdit && onEdit(item)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'transparent',
-                          color: '#2563eb',
-                          border: '1px solid #2563eb',
-                          borderRadius: '6px',
-                          fontSize: '0.875rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#2563eb';
-                          e.target.style.color = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
-                          e.target.style.color = '#2563eb';
-                        }}
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => onDelete && onDelete(item)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'transparent',
-                          color: '#dc2626',
-                          border: '1px solid #dc2626',
-                          borderRadius: '6px',
-                          fontSize: '0.875rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#dc2626';
-                          e.target.style.color = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
-                          e.target.style.color = '#dc2626';
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))
             )}

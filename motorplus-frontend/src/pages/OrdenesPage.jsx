@@ -319,16 +319,23 @@ const OrdenesPage = () => {
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          errorData = { mensaje: errorText || `Error ${response.status}` };
+          errorData = { error: errorText || `Error ${response.status}` };
         }
-        throw new Error(errorData.mensaje || `Error ${response.status}: No se pudo eliminar la orden`);
+        throw new Error(errorData.error || `Error ${response.status}: No se pudo eliminar la orden`);
       }
 
       await fetchOrdenes();
     } catch (err) {
-      setError(err.message);
       console.error('Error eliminando orden:', err);
-      alert('Error al eliminar la orden:\n' + err.message);
+      // Mostrar mensaje de error en ventana flotante (sin actualizar el estado de error general)
+      const userMessage = err.message.includes('factura asociada')
+        ? err.message
+        : 'Error al eliminar la orden:\n' + err.message;
+
+      // Forzar la ejecución del alert en el siguiente ciclo del event loop
+      setTimeout(() => {
+        alert(userMessage);
+      }, 100);
     }
   };
 

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -144,7 +145,7 @@ public class OrdenTrabajoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrdenTrabajo(@PathVariable String id) {
+    public ResponseEntity<?> deleteOrdenTrabajo(@PathVariable String id) {
         try {
             Integer codigo = Integer.parseInt(id);
             if (!ordenTrabajoService.findById(codigo).isPresent()) {
@@ -154,6 +155,20 @@ public class OrdenTrabajoController {
             return ResponseEntity.noContent().build();
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            // Verificar si es una violación de foreign key por factura
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("fk_factura_orden")) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No es posible eliminar esta orden de trabajo porque tiene una factura asociada"));
+            }
+            // Para otros errores de integridad, devolver error genérico
+            if (errorMessage != null && (errorMessage.contains("foreign key constraint") || errorMessage.contains("constraint"))) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No es posible eliminar esta orden de trabajo debido a restricciones de integridad de datos"));
+            }
+            // Re-lanzar otros tipos de excepciones
+            throw e;
         }
     }
 
